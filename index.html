@@ -572,7 +572,7 @@
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'baby-nest-default';
     let app, db, auth;
     let currentUser = null;
-    let currentRoomCode = 'BABY88';
+    let currentRoomCode = 'BABY88'; /* Change 'BABY88' to your custom family room name here if you want it as the permanent default */
     let currentParentRole = 'Mom';
     let allLogs = [];
     let activeFilter = 'all';
@@ -663,6 +663,17 @@
     }
     const savedRole = sessionStorage.getItem('babynest_role');
     if (savedRole) currentParentRole = savedRole;
+
+    // Ensure the browser address bar always has your room code attached
+    try {
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.get('room') !== currentRoomCode) {
+        currentUrl.searchParams.set('room', currentRoomCode);
+        window.history.replaceState({}, '', currentUrl.toString());
+      }
+    } catch (e) {
+      console.warn("Could not update URL", e);
+    }
 
     // ----------------------------------------------------------------------
     // YOUR ACTUAL FIREBASE CONFIG KEYS:
@@ -1186,6 +1197,16 @@
       const newRoom = input.value.trim().toUpperCase() || 'BABY88';
       currentRoomCode = newRoom;
       sessionStorage.setItem('babynest_room', newRoom);
+
+      // Automatically update the browser URL so Home Screen shortcuts and bookmarks keep this room
+      try {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('room', newRoom);
+        window.history.replaceState({}, '', newUrl.toString());
+      } catch (e) {
+        console.warn("Could not update URL", e);
+      }
+
       updateHeaderDisplay();
       listenForLogs();
       closeSyncModal();
