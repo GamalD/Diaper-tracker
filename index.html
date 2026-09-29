@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BabyNest - Partner Baby Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            baby: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              teal: '#14b8a6',
+              peach: '#fb923c',
+              lavender: '#818cf8',
+              amber: '#f59e0b',
+              rose: '#f43f5e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* iOS & Android friendly scroll and touch behavior */
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .safe-bottom {
+      padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .pulse-dot {
+      animation: pulseAnimation 2s infinite;
+    }
+    @keyframes pulseAnimation {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans pb-24 select-none">
+
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-xs">
+    <div class="max-w-lg mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-2xl bg-teal-500 text-white flex items-center justify-center shadow-md shadow-teal-500/20">
+          <i class="fa-solid fa-baby text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-slate-800 flex items-center gap-1.5 leading-none">
+            BabyNest
+            <span id="syncStatusBadge" class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-teal-500 pulse-dot"></span>
+              Live Sync
+            </span>
+            <span class="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200" title="End-to-End Encrypted">
+              <i class="fa-solid fa-lock text-[9px]"></i> E2EE
+            </span>
+          </h1>
+          <p class="text-[12px] text-slate-500 mt-0.5" id="headerSubtitle">Family Room: <span id="displayRoomCode" class="font-bold text-slate-700 uppercase tracking-wider">NEWBORN</span></p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <!-- Partner Pairing Button -->
+        <button id="openSyncModalBtn" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+          <i class="fa-solid fa-qrcode text-teal-600"></i>
+          <span>Partner Sync</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-lg w-full mx-auto px-4 pt-4 space-y-4">
+
+    <!-- Quick Partner Switcher Banner -->
+    <div class="bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-100 rounded-2xl p-3 flex items-center justify-between shadow-xs">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-user-pen text-teal-600 text-sm"></i>
+        <span class="text-xs text-slate-600">Logging as:</span>
+        <button id="toggleParentBtn" class="text-xs font-bold text-teal-700 underline decoration-teal-400 underline-offset-2">
+          <span id="currentParentLabel">Mom</span> <i class="fa-solid fa-repeat text-[10px] ml-0.5"></i>
+        </button>
+      </div>
+      <span class="text-[11px] text-slate-500" id="totalEntriesToday">0 logs today</span>
+    </div>
+
+    <section class="grid grid-cols-3 gap-2.5">
+      <!-- Last Diaper Card -->
+      <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between text-amber-600">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Diaper</span>
+          <i class="fa-solid fa-toilet-paper text-sm"></i>
+        </div>
+        <div class="my-1.5">
+          <div id="lastDiaperTime" class="text-base font-extrabold text-slate-800 leading-tight">--</div>
+          <div id="lastDiaperType" class="text-[11px] text-slate-500 truncate">No logs yet</div>
+        </div>
+        <div class="text-[10px] font-semibold text-amber-700/80 bg-amber-50 px-1.5 py-0.5 rounded-md self-start" id="diaperCountBadge">
+          0 today
+        </div>
+      </div>
+
+      <!-- Last Feed Card -->
+      <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between text-rose-500">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Last Feed</span>
+          <i class="fa-solid fa-bottle-droplet text-sm"></i>
+        </div>
+        <div class="my-1.5">
+          <div id="lastFeedTime" class="text-base font-extrabold text-slate-800 leading-tight">--</div>
+          <div id="lastFeedType" class="text-[11px] text-slate-500 truncate">No feeds yet</div>
+        </div>
+        <div class="text-[10px] font-semibold text-rose-700/80 bg-rose-50 px-1.5 py-0.5 rounded-md self-start" id="feedCountBadge">
+          0 today
+        </div>
+      </div>
+
+      <!-- Last Sleep Card -->
+      <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between text-indigo-500">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Sleep</span>
+          <i class="fa-solid fa-moon text-sm"></i>
+        </div>
+        <div class="my-1.5">
+          <div id="lastSleepTime" class="text-base font-extrabold text-slate-800 leading-tight">--</div>
+          <div id="lastSleepType" class="text-[11px] text-slate-500 truncate">No naps yet</div>
+        </div>
+        <div class="text-[10px] font-semibold text-indigo-700/80 bg-indigo-50 px-1.5 py-0.5 rounded-md self-start" id="sleepCountBadge">
+          0 hrs today
+        </div>
+      </div>
+    </section>
+
+    <section class="space-y-2">
+      <div class="flex items-center justify-between px-1">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Quick Log</h2>
+        <span class="text-[11px] text-teal-600 font-semibold">Tap to add</span>
+      </div>
+
+      <div class="grid grid-cols-4 gap-2">
+        <!-- Diaper Quick Modal -->
+        <button onclick="openLogModal('diaper')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-500/10 active:bg-amber-500/20 text-amber-700 border border-amber-200/60 transition-transform active:scale-95">
+          <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
+            <i class="fa-solid fa-baby-carriage"></i>
+          </div>
+          <span class="text-xs font-bold">Diaper</span>
+          <span class="text-[10px] text-amber-800/70">Pee / Poop</span>
+        </button>
+
+        <!-- Nursing Quick Modal -->
+        <button onclick="openLogModal('nursing')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-rose-500/10 active:bg-rose-500/20 text-rose-700 border border-rose-200/60 transition-transform active:scale-95">
+          <div class="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
+            <i class="fa-solid fa-person-breastfeeding"></i>
+          </div>
+          <span class="text-xs font-bold">Nursing</span>
+          <span class="text-[10px] text-rose-800/70">Left / Right</span>
+        </button>
+
+        <!-- Bottle Quick Modal -->
+        <button onclick="openLogModal('bottle')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-teal-500/10 active:bg-teal-500/20 text-teal-700 border border-teal-200/60 transition-transform active:scale-95">
+          <div class="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
+            <i class="fa-solid fa-bottle-water"></i>
+          </div>
+          <span class="text-xs font-bold">Bottle</span>
+          <span class="text-[10px] text-teal-800/70">Milk / Formula</span>
+        </button>
+
+        <!-- Sleep Quick Modal -->
+        <button onclick="openLogModal('sleep')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-500/10 active:bg-indigo-500/20 text-indigo-700 border border-indigo-200/60 transition-transform active:scale-95">
+          <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
+            <i class="fa-solid fa-bed"></i>
+          </div>
+          <span class="text-xs font-bold">Sleep</span>
+          <span class="text-[10px] text-indigo-800/70">Nap / Wake</span>
+        </button>
+      </div>
+
+      <!-- Secondary Quick Log Row: Tummy Time, Pumping, Meds -->
+      <div class="grid grid-cols-3 gap-2 pt-1">
+        <button onclick="openLogModal('tummy')" class="py-2 px-3 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+          <i class="fa-solid fa-dumbbell text-emerald-500"></i> Tummy Time
+        </button>
+        <button onclick="openLogModal('pump')" class="py-2 px-3 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+          <i class="fa-solid fa-pump-medical text-cyan-600"></i> Pumping
+        </button>
+        <button onclick="openLogModal('health')" class="py-2 px-3 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+          <i class="fa-solid fa-temperature-half text-amber-500"></i> Temp / Meds
+        </button>
+      </div>
+    </section>
+
+    <section class="space-y-3 pt-2">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Activity Timeline</h2>
+        <!-- Filters -->
+        <div class="flex gap-1 text-[11px] bg-slate-200/70 p-0.5 rounded-lg font-medium text-slate-600">
+          <button onclick="setFilter('all')" id="filter-all" class="px-2.5 py-1 rounded-md bg-white text-slate-800 font-bold shadow-xs">All</button>
+          <button onclick="setFilter('feed')" id="filter-feed" class="px-2.5 py-1 rounded-md">Feeds</button>
+          <button onclick="setFilter('diaper')" id="filter-diaper" class="px-2.5 py-1 rounded-md">Diapers</button>
+          <button onclick="setFilter('sleep')" id="filter-sleep" class="px-2.5 py-1 rounded-md">Sleep</button>
+        </div>
+      </div>
+
+      <!-- Day Quick Filter & Jump Bar -->
+      <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200/90 text-xs">
+        <div class="flex items-center gap-1.5 text-slate-600 font-medium">
+          <i class="fa-regular fa-calendar text-teal-600"></i>
+          <span>View Date:</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="date" id="selectedDateFilter" onchange="handleDateFilterChange(this.value)" class="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+          <button onclick="clearDateFilter()" id="clearDateBtn" class="hidden text-[11px] text-teal-600 font-bold hover:underline">
+            All Days
+          </button>
+        </div>
+      </div>
+
+      <!-- Events List Container -->
+      <div id="timelineContainer" class="space-y-2.5">
+        <!-- Placeholder / Loading Skeleton -->
+        <div class="p-6 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+          <i class="fa-solid fa-circle-notch fa-spin text-teal-500 text-xl mb-2"></i>
+          <p class="text-xs">Connecting baby log...</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="syncModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-house-chimney-user text-teal-600"></i>
+          Sync with Partner
+        </h3>
+        <button onclick="closeSyncModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="bg-teal-50 border border-teal-100 rounded-2xl p-3.5 text-xs text-teal-900 space-y-2">
+        <p class="font-bold flex items-center gap-1.5">
+          <i class="fa-brands fa-apple text-slate-700"></i> iPhone + <i class="fa-brands fa-android text-emerald-600"></i> Android Ready!
+        </p>
+        <p class="text-[12px] leading-relaxed text-teal-800">
+          Both parents share the same room code. Any entry logged on either phone will immediately appear on the other phone without reloading.
+        </p>
+        <div class="pt-1 border-t border-teal-200/60 flex items-center gap-1.5 text-emerald-800 font-semibold text-[11px]">
+          <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+          End-to-End Encrypted: Your secret key encrypts all data locally before syncing.
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Your Shared Family Secret Key</label>
+        <div class="flex gap-2">
+          <input type="text" id="roomCodeInput" class="w-full text-center tracking-widest font-mono uppercase font-bold text-base bg-slate-100 border border-slate-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. BABY-88">
+          <button onclick="applyRoomCode()" class="px-4 py-2.5 bg-teal-600 text-white rounded-xl font-bold text-xs hover:bg-teal-700 shrink-0">
+            Join
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-1">This key acts as your decryption password. Keep it identical on both phones.</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Your Shared Family Code</label>
+        <div class="flex gap-2">
+          <input type="text" id="roomCodeInput" class="w-full text-center tracking-widest font-mono uppercase font-bold text-base bg-slate-100 border border-slate-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. BABY-88">
+          <button onclick="applyRoomCode()" class="px-4 py-2.5 bg-teal-600 text-white rounded-xl font-bold text-xs hover:bg-teal-700 shrink-0">
+            Join
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Your Display Name</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" onclick="selectParentRole('Mom')" class="role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100" data-role="Mom">Mom</button>
+          <button type="button" onclick="selectParentRole('Dad')" class="role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100" data-role="Dad">Dad</button>
+          <button type="button" onclick="selectParentRole('Partner')" class="role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100" data-role="Partner">Partner</button>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button onclick="copyShareLink()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-300">
+          <i class="fa-solid fa-link"></i> Copy Family Invite Link
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="logModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scroll safe-bottom">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div id="modalIconWrap" class="w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base">
+            <i id="modalIcon" class="fa-solid fa-plus"></i>
+          </div>
+          <div>
+            <h3 id="modalTitle" class="text-base font-bold text-slate-800">Log Entry</h3>
+            <p id="modalSubtitle" class="text-[11px] text-slate-400">Timestamp: Now</p>
+          </div>
+        </div>
+        <button onclick="closeLogModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- FORM CONTENT DYNAMIC BY TYPE -->
+      <form id="activeLogForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+        <input type="hidden" id="entryTypeInput" value="diaper">
+
+        <!-- DIAPER FIELDS CONTAINER -->
+        <div id="diaperFields" class="space-y-3">
+          <label class="block text-xs font-bold text-slate-700">Diaper Status</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="diaperContent" value="Pee" checked class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 font-bold text-xs transition-all flex flex-col items-center gap-1">
+                <i class="fa-solid fa-droplet text-amber-500 text-sm"></i>
+                Pee Only
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="diaperContent" value="Poop" class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-amber-700 peer-checked:bg-amber-50 peer-checked:text-amber-900 font-bold text-xs transition-all flex flex-col items-center gap-1">
+                <i class="fa-solid fa-poop text-amber-800 text-sm"></i>
+                Poop Only
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="diaperContent" value="Both" class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-amber-600 peer-checked:bg-amber-50 peer-checked:text-amber-800 font-bold text-xs transition-all flex flex-col items-center gap-1">
+                <div class="flex gap-1 text-xs">
+                  <i class="fa-solid fa-droplet text-amber-500"></i>
+                  <i class="fa-solid fa-poop text-amber-800"></i>
+                </div>
+                Pee & Poop
+              </div>
+            </label>
+          </div>
+
+          <!-- Poop details (optional) -->
+          <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Poop Details (Helpful for doctor)</span>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" onclick="setPoopTag('Mustard/Yellow')" class="tag-btn text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-slate-300 bg-white">💛 Mustard Yellow</button>
+              <button type="button" onclick="setPoopTag('Seedy')" class="tag-btn text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-slate-300 bg-white">🌾 Seedy</button>
+              <button type="button" onclick="setPoopTag('Green')" class="tag-btn text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-slate-300 bg-white">💚 Greenish</button>
+              <button type="button" onclick="setPoopTag('Brown')" class="tag-btn text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-slate-300 bg-white">🤎 Brown</button>
+              <button type="button" onclick="setPoopTag('Watery')" class="tag-btn text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-slate-300 bg-white">💧 Watery</button>
+            </div>
+            <input type="hidden" id="poopDetailInput" value="">
+          </div>
+        </div>
+
+        <!-- NURSING FIELDS CONTAINER -->
+        <div id="nursingFields" class="space-y-3 hidden">
+          <!-- Nursing Timer helper -->
+          <div class="bg-rose-50 border border-rose-100 rounded-2xl p-3 flex items-center justify-between">
+            <div>
+              <div class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Live Breastfeeding Timer</div>
+              <div id="liveTimerDisplay" class="text-2xl font-black text-rose-600 font-mono">00:00</div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="startTimerBtn" onclick="toggleNursingTimer()" class="px-3 py-1.5 bg-rose-500 text-white rounded-xl text-xs font-bold shadow-xs">
+                Start Timer
+              </button>
+              <button type="button" onclick="resetNursingTimer()" class="p-1.5 text-rose-600 hover:bg-rose-100 rounded-lg text-xs">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+            </div>
+          </div>
+
+          <label class="block text-xs font-bold text-slate-700">Side / Breast</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="nursingSide" value="Left" checked class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50 peer-checked:text-rose-700 font-bold text-xs transition-all">
+                Left Breast
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="nursingSide" value="Right" class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50 peer-checked:text-rose-700 font-bold text-xs transition-all">
+                Right Breast
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="nursingSide" value="Both" class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50 peer-checked:text-rose-700 font-bold text-xs transition-all">
+                Both Sides
+              </div>
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Total Duration (Minutes)</label>
+            <div class="flex items-center gap-2">
+              <input type="number" id="nursingDurationInput" min="1" max="180" value="15" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold">
+              <span class="text-xs text-slate-500 font-bold">mins</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTTLE FIELDS CONTAINER -->
+        <div id="bottleFields" class="space-y-3 hidden">
+          <label class="block text-xs font-bold text-slate-700">Contents</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="bottleContent" value="Breast Milk" checked class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-teal-500 peer-checked:bg-teal-50 peer-checked:text-teal-700 font-bold text-xs transition-all">
+                Express Breastmilk
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="bottleContent" value="Formula" class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-teal-500 peer-checked:bg-teal-50 peer-checked:text-teal-700 font-bold text-xs transition-all">
+                Formula
+              </div>
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Amount Given</label>
+            <div class="grid grid-cols-4 gap-1.5 mb-2">
+              <button type="button" onclick="setBottleAmount(60)" class="py-1.5 bg-slate-100 rounded-lg text-xs font-bold hover:bg-slate-200 text-slate-700">60ml / 2oz</button>
+              <button type="button" onclick="setBottleAmount(90)" class="py-1.5 bg-slate-100 rounded-lg text-xs font-bold hover:bg-slate-200 text-slate-700">90ml / 3oz</button>
+              <button type="button" onclick="setBottleAmount(120)" class="py-1.5 bg-slate-100 rounded-lg text-xs font-bold hover:bg-slate-200 text-slate-700">120ml / 4oz</button>
+              <button type="button" onclick="setBottleAmount(150)" class="py-1.5 bg-slate-100 rounded-lg text-xs font-bold hover:bg-slate-200 text-slate-700">150ml / 5oz</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="number" id="bottleAmountInput" value="60" min="5" step="5" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold">
+              <select id="bottleUnitSelect" class="bg-slate-100 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold">
+                <option value="ml" selected>ml</option>
+                <option value="oz">oz</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- SLEEP FIELDS CONTAINER -->
+        <div id="sleepFields" class="space-y-3 hidden">
+          <label class="block text-xs font-bold text-slate-700">Sleep Type</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="sleepType" value="Nap" checked class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 font-bold text-xs transition-all">
+                Daytime Nap
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="sleepType" value="Night Sleep" class="peer sr-only">
+              <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 font-bold text-xs transition-all">
+                Night Sleep
+              </div>
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Nap Duration (Minutes)</label>
+            <div class="flex items-center gap-2">
+              <input type="number" id="sleepDurationInput" min="5" max="720" value="45" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold">
+              <span class="text-xs text-slate-500 font-bold">mins</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TUMMY TIME FIELDS -->
+        <div id="tummyFields" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Tummy Time Duration</label>
+            <div class="flex items-center gap-2">
+              <input type="number" id="tummyDurationInput" min="1" max="60" value="5" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold">
+              <span class="text-xs text-slate-500 font-bold">mins</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PUMPING FIELDS -->
+        <div id="pumpFields" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Pumped Volume (ml or oz)</label>
+            <div class="flex items-center gap-2">
+              <input type="number" id="pumpAmountInput" min="5" value="80" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold">
+              <span class="text-xs text-slate-500 font-bold">ml</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- HEALTH & MEDS FIELDS -->
+        <div id="healthFields" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Temperature / Medication Details</label>
+            <input type="text" id="healthDetailInput" placeholder="e.g. 98.6°F or Vitamin D drops given" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm">
+          </div>
+        </div>
+
+        <!-- COMMON TIMESTAMP & NOTES -->
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold text-slate-600">Event Time</label>
+            <span class="text-[11px] text-teal-600 font-semibold cursor-pointer" onclick="setToNow()">Set to Now</span>
+          </div>
+          <input type="datetime-local" id="entryTimestampInput" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-700">
+
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Notes (Optional)</label>
+            <input type="text" id="entryNotesInput" placeholder="e.g. Baby was fussy, burped easily..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-700">
+          </div>
+        </div>
+
+        <!-- Submit & Cancel Buttons -->
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeLogModal()" class="w-1/3 py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200">
+            Cancel
+          </button>
+          <button type="submit" id="saveLogBtn" class="w-2/3 py-3 rounded-2xl bg-teal-600 text-white font-bold text-xs hover:bg-teal-700 shadow-md shadow-teal-600/20 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-check"></i> Save & Sync
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="customToast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-4">
+    <div class="bg-slate-900/90 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg backdrop-blur-sm flex items-center gap-2">
+      <i id="toastIcon" class="fa-solid fa-circle-check text-teal-400"></i>
+      <span id="toastMsg">Synced!</span>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInAnonymously, 
+      signInWithCustomToken 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      addDoc, 
+      deleteDoc, 
+      onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'baby-nest-default';
+    let app, db, auth;
+    let currentUser = null;
+    let currentRoomCode = 'BABY88';
+    let currentParentRole = 'Mom';
+    let allLogs = [];
+    let activeFilter = 'all';
+    let activeDateFilter = ''; // e.g. "2026-09-28" or empty for all days
+    let unsubscribeSnapshot = null;
+
+    async function deriveCryptoKey(passphrase) {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        enc.encode(passphrase),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+      );
+      // Fixed family salt (derived deterministically from the room identifier)
+      const salt = enc.encode("BabyNest-Secure-Salt-" + passphrase.toUpperCase());
+      return await crypto.subtle.deriveKey(
+        {
+          name: "PBKDF2",
+          salt: salt,
+          iterations: 100000,
+          hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function encryptPayload(plainTextObj, passphrase) {
+      try {
+        const key = await deriveCryptoKey(passphrase);
+        const enc = new TextEncoder();
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const encodedData = enc.encode(JSON.stringify(plainTextObj));
+        
+        const cipherBuffer = await crypto.subtle.encrypt(
+          { name: "AES-GCM", iv: iv },
+          key,
+          encodedData
+        );
+
+        // Package IV + Ciphertext as base64
+        const ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join('');
+        const cipherHex = Array.from(new Uint8Array(cipherBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        return `${ivHex}:${cipherHex}`;
+      } catch (err) {
+        console.error("Encryption failed:", err);
+        return null;
+      }
+    }
+
+    async function decryptPayload(cipherString, passphrase) {
+      try {
+        const parts = cipherString.split(':');
+        if (parts.length !== 2) return null;
+        
+        const ivBytes = new Uint8Array(parts[0].match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        const cipherBytes = new Uint8Array(parts[1].match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+
+        const key = await deriveCryptoKey(passphrase);
+        const decryptedBuffer = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: ivBytes },
+          key,
+          cipherBytes
+        );
+
+        const dec = new TextDecoder();
+        return JSON.parse(dec.decode(decryptedBuffer));
+      } catch (err) {
+        // If decryption fails (e.g. wrong room password or unencrypted legacy entry)
+        return null;
+      }
+    }
+
+    // Nursing live timer state
+    let timerInterval = null;
+    let timerSeconds = 0;
+    let timerRunning = false;
+
+    // Load initial room code from URL params or localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('room')) {
+      currentRoomCode = urlParams.get('room').toUpperCase();
+    } else {
+      const savedRoom = sessionStorage.getItem('babynest_room');
+      if (savedRoom) currentRoomCode = savedRoom;
+    }
+    const savedRole = sessionStorage.getItem('babynest_role');
+    if (savedRole) currentParentRole = savedRole;
+
+    async function initFirebase() {
+      try {
+        if (typeof __firebase_config !== 'undefined') {
+          const firebaseConfig = JSON.parse(__firebase_config);
+          app = initializeApp(firebaseConfig);
+          auth = getAuth(app);
+          db = getFirestore(app);
+
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+          currentUser = auth.currentUser;
+        }
+      } catch (err) {
+        console.warn("Using in-memory/demo cloud sync mode:", err);
+      }
+
+      updateHeaderDisplay();
+      listenForLogs();
+    }
+
+    function listenForLogs() {
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+
+      if (!db || !currentUser) {
+        // Fallback for demo environments
+        showToast("Connected to local offline log mode", "info");
+        renderAll();
+        return;
+      }
+
+      // STRICT RULE 1: /artifacts/{appId}/public/data/{collectionName}
+      // STRICT RULE 2: No complex queries, fetch collection and filter in memory
+      const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'baby_activities');
+
+      unsubscribeSnapshot = onSnapshot(logsRef, async (snapshot) => {
+        const rawDocs = [];
+        snapshot.forEach(docSnap => {
+          rawDocs.push({
+            id: docSnap.id,
+            ...docSnap.data()
+          });
+        });
+
+        // Decrypt records that belong to current room code
+        const decryptedLogs = [];
+        for (const item of rawDocs) {
+          if ((item.roomCode || '').toUpperCase() === currentRoomCode.toUpperCase()) {
+            if (item.encryptedPayload) {
+              // Decrypt client-side
+              const decrypted = await decryptPayload(item.encryptedPayload, currentRoomCode);
+              if (decrypted) {
+                decryptedLogs.push({
+                  id: item.id,
+                  ...decrypted,
+                  timestamp: item.timestamp || decrypted.timestamp
+                });
+              }
+            } else {
+              // Backward compatibility for unencrypted test logs
+              decryptedLogs.push(item);
+            }
+          }
+        }
+
+        allLogs = decryptedLogs;
+
+        // Sort descending by timestamp in memory
+        allLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        renderAll();
+      }, (error) => {
+        console.error("Firestore sync error:", error);
+        showToast("Connection issue, checking local memory...", "error");
+      });
+    }
+
+    window.handleFormSubmit = async function(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveLogBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Encrypting...`;
+
+      const type = document.getElementById('entryTypeInput').value;
+      const timestampValue = document.getElementById('entryTimestampInput').value;
+      const timestamp = timestampValue ? new Date(timestampValue).toISOString() : new Date().toISOString();
+      const notes = document.getElementById('entryNotesInput').value.trim();
+
+      const sensitiveLogData = {
+        roomCode: currentRoomCode,
+        parentRole: currentParentRole,
+        type: type,
+        timestamp: timestamp,
+        notes: notes,
+        createdAt: new Date().toISOString()
+      };
+
+      if (type === 'diaper') {
+        const checkedDiaper = document.querySelector('input[name="diaperContent"]:checked');
+        sensitiveLogData.diaperContent = checkedDiaper ? checkedDiaper.value : 'Pee';
+        sensitiveLogData.detail = document.getElementById('poopDetailInput').value || '';
+      } else if (type === 'nursing') {
+        const checkedSide = document.querySelector('input[name="nursingSide"]:checked');
+        sensitiveLogData.nursingSide = checkedSide ? checkedSide.value : 'Left';
+        sensitiveLogData.durationMins = parseInt(document.getElementById('nursingDurationInput').value, 10) || 15;
+      } else if (type === 'bottle') {
+        const checkedBottle = document.querySelector('input[name="bottleContent"]:checked');
+        sensitiveLogData.bottleContent = checkedBottle ? checkedBottle.value : 'Breast Milk';
+        sensitiveLogData.amount = parseFloat(document.getElementById('bottleAmountInput').value) || 60;
+        sensitiveLogData.unit = document.getElementById('bottleUnitSelect').value;
+      } else if (type === 'sleep') {
+        const checkedSleep = document.querySelector('input[name="sleepType"]:checked');
+        sensitiveLogData.sleepType = checkedSleep ? checkedSleep.value : 'Nap';
+        sensitiveLogData.durationMins = parseInt(document.getElementById('sleepDurationInput').value, 10) || 45;
+      } else if (type === 'tummy') {
+        sensitiveLogData.durationMins = parseInt(document.getElementById('tummyDurationInput').value, 10) || 5;
+      } else if (type === 'pump') {
+        sensitiveLogData.amount = parseFloat(document.getElementById('pumpAmountInput').value) || 80;
+        sensitiveLogData.unit = 'ml';
+      } else if (type === 'health') {
+        sensitiveLogData.detail = document.getElementById('healthDetailInput').value || 'Checked';
+      }
+
+      try {
+        // Encrypt the sensitive payload locally with the shared family secret key
+        const cipherText = await encryptPayload(sensitiveLogData, currentRoomCode);
+
+        // Stored document contains ONLY the room identifier and ciphertext
+        const docToStore = {
+          roomCode: currentRoomCode,
+          timestamp: timestamp,
+          encryptedPayload: cipherText,
+          updatedAt: new Date().toISOString()
+        };
+
+        if (db && currentUser) {
+          const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'baby_activities');
+          await addDoc(logsRef, docToStore);
+        } else {
+          // In-memory fallback
+          sensitiveLogData.id = 'temp_' + Date.now();
+          allLogs.unshift(sensitiveLogData);
+          renderAll();
+        }
+        showToast(`Encrypted & logged by ${currentParentRole}!`, "success");
+        closeLogModal();
+      } catch (err) {
+        console.error("Save error:", err);
+        showToast("Error saving entry", "error");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save & Sync`;
+      }
+    };
+
+    window.deleteLogEntry = async function(id) {
+      if (!id) return;
+      try {
+        if (db && currentUser) {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_activities', id);
+          await deleteDoc(docRef);
+        } else {
+          allLogs = allLogs.filter(item => item.id !== id);
+          renderAll();
+        }
+        showToast("Entry removed", "info");
+      } catch (err) {
+        console.error("Delete error:", err);
+        showToast("Could not delete entry", "error");
+      }
+    };
+
+    function renderMetrics() {
+      const now = new Date();
+      const todayStr = now.toDateString();
+
+      const todayLogs = allLogs.filter(item => new Date(item.timestamp).toDateString() === todayStr);
+      document.getElementById('totalEntriesToday').innerText = `${todayLogs.length} logs today`;
+
+      // Find Last Diaper
+      const diapers = allLogs.filter(item => item.type === 'diaper');
+      const diaperBadge = document.getElementById('diaperCountBadge');
+      const diaperTimeEl = document.getElementById('lastDiaperTime');
+      const diaperTypeEl = document.getElementById('lastDiaperType');
+
+      const todayDiapers = todayLogs.filter(item => item.type === 'diaper');
+      diaperBadge.innerText = `${todayDiapers.length} today`;
+
+      if (diapers.length > 0) {
+        const last = diapers[0];
+        diaperTimeEl.innerText = formatRelativeTime(new Date(last.timestamp));
+        diaperTypeEl.innerText = `${last.diaperContent} (${last.parentRole || 'Partner'})`;
+      } else {
+        diaperTimeEl.innerText = "--";
+        diaperTypeEl.innerText = "No logs yet";
+      }
+
+      // Find Last Feed
+      const feeds = allLogs.filter(item => item.type === 'nursing' || item.type === 'bottle');
+      const feedBadge = document.getElementById('feedCountBadge');
+      const feedTimeEl = document.getElementById('lastFeedTime');
+      const feedTypeEl = document.getElementById('lastFeedType');
+
+      const todayFeeds = todayLogs.filter(item => item.type === 'nursing' || item.type === 'bottle');
+      feedBadge.innerText = `${todayFeeds.length} today`;
+
+      if (feeds.length > 0) {
+        const last = feeds[0];
+        feedTimeEl.innerText = formatRelativeTime(new Date(last.timestamp));
+        if (last.type === 'nursing') {
+          feedTypeEl.innerText = `Nursing (${last.nursingSide || 'Both'})`;
+        } else {
+          feedTypeEl.innerText = `Bottle (${last.amount}${last.unit})`;
+        }
+      } else {
+        feedTimeEl.innerText = "--";
+        feedTypeEl.innerText = "No feeds yet";
+      }
+
+      // Find Last Sleep
+      const sleeps = allLogs.filter(item => item.type === 'sleep');
+      const sleepBadge = document.getElementById('sleepCountBadge');
+      const sleepTimeEl = document.getElementById('lastSleepTime');
+      const sleepTypeEl = document.getElementById('lastSleepType');
+
+      const totalSleepMinutesToday = todayLogs
+        .filter(item => item.type === 'sleep')
+        .reduce((acc, curr) => acc + (parseInt(curr.durationMins, 10) || 0), 0);
+
+      const hoursToday = (totalSleepMinutesToday / 60).toFixed(1);
+      sleepBadge.innerText = `${hoursToday}h today`;
+
+      if (sleeps.length > 0) {
+        const last = sleeps[0];
+        sleepTimeEl.innerText = formatRelativeTime(new Date(last.timestamp));
+        sleepTypeEl.innerText = `${last.durationMins}m ${last.sleepType || 'Nap'}`;
+      } else {
+        sleepTimeEl.innerText = "--";
+        sleepTypeEl.innerText = "No naps yet";
+      }
+    }
+
+    function renderTimeline() {
+      const container = document.getElementById('timelineContainer');
+      let filtered = allLogs.filter(item => {
+        if (activeFilter === 'feed') return item.type === 'nursing' || item.type === 'bottle';
+        if (activeFilter === 'diaper') return item.type === 'diaper';
+        if (activeFilter === 'sleep') return item.type === 'sleep';
+        return true;
+      });
+
+      // Filter by selected specific calendar date if active
+      if (activeDateFilter) {
+        filtered = filtered.filter(item => {
+          const itemDate = new Date(item.timestamp);
+          const yyyy = itemDate.getFullYear();
+          const mm = String(itemDate.getMonth() + 1).padStart(2, '0');
+          const dd = String(itemDate.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}` === activeDateFilter;
+        });
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 border border-slate-200 text-center space-y-2">
+            <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
+              <i class="fa-solid fa-calendar-xmark text-xl"></i>
+            </div>
+            <p class="text-sm font-bold text-slate-700">No logs for this view</p>
+            <p class="text-xs text-slate-400 max-w-xs mx-auto">
+              ${activeDateFilter ? 'No entries recorded on ' + activeDateFilter + '. Tap "All Days" to see full history.' : 'Tap any button above to record your first feed, diaper or nap.'}
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      // Group logs by Date Header (e.g., Today, Yesterday, or full date)
+      const groups = {};
+      filtered.forEach(log => {
+        const d = new Date(log.timestamp);
+        const dateKey = d.toDateString();
+        if (!groups[dateKey]) {
+          groups[dateKey] = [];
+        }
+        groups[dateKey].push(log);
+      });
+
+      const todayStr = new Date().toDateString();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toDateString();
+
+      let html = '';
+      for (const [dateStr, logs] of Object.entries(groups)) {
+        let label = dateStr;
+        const dObj = new Date(dateStr);
+        const formattedDate = dObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+        if (dateStr === todayStr) {
+          label = `Today • ${formattedDate}`;
+        } else if (dateStr === yesterdayStr) {
+          label = `Yesterday • ${formattedDate}`;
+        } else {
+          label = formattedDate;
+        }
+
+        html += `
+          <div class="pt-2 pb-1 flex items-center gap-2">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md flex items-center gap-1.5">
+              <i class="fa-regular fa-calendar-days text-teal-600"></i>
+              ${label}
+            </span>
+            <div class="flex-1 h-px bg-slate-200"></div>
+            <span class="text-[10px] text-slate-400 font-semibold">${logs.length} ${logs.length === 1 ? 'event' : 'events'}</span>
+          </div>
+        `;
+
+        logs.forEach(log => {
+          const dateObj = new Date(log.timestamp);
+          const timeDisplay = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const relative = formatRelativeTime(dateObj);
+
+          let iconClass = 'fa-solid fa-bell';
+          let bgBadge = 'bg-slate-100 text-slate-600';
+          let title = 'Activity';
+          let details = '';
+
+          if (log.type === 'diaper') {
+            iconClass = 'fa-solid fa-toilet-paper';
+            bgBadge = 'bg-amber-100 text-amber-700';
+            title = `Diaper: ${log.diaperContent || 'Pee'}`;
+            if (log.detail) details = `<span class="inline-block mt-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[10px] font-semibold">${log.detail}</span>`;
+          } else if (log.type === 'nursing') {
+            iconClass = 'fa-solid fa-person-breastfeeding';
+            bgBadge = 'bg-rose-100 text-rose-700';
+            title = `Nursing (${log.nursingSide} Side)`;
+            details = `<span class="text-xs text-slate-500">${log.durationMins || 15} mins duration</span>`;
+          } else if (log.type === 'bottle') {
+            iconClass = 'fa-solid fa-bottle-water';
+            bgBadge = 'bg-teal-100 text-teal-700';
+            title = `Bottle Feed (${log.bottleContent || 'Milk'})`;
+            details = `<span class="text-xs font-bold text-teal-700">${log.amount} ${log.unit || 'ml'}</span>`;
+          } else if (log.type === 'sleep') {
+            iconClass = 'fa-solid fa-moon';
+            bgBadge = 'bg-indigo-100 text-indigo-700';
+            title = log.sleepType || 'Nap';
+            details = `<span class="text-xs text-slate-500">${log.durationMins || 30} mins duration</span>`;
+          } else if (log.type === 'tummy') {
+            iconClass = 'fa-solid fa-dumbbell';
+            bgBadge = 'bg-emerald-100 text-emerald-700';
+            title = 'Tummy Time';
+            details = `<span class="text-xs text-slate-500">${log.durationMins || 5} mins</span>`;
+          } else if (log.type === 'pump') {
+            iconClass = 'fa-solid fa-pump-medical';
+            bgBadge = 'bg-cyan-100 text-cyan-700';
+            title = 'Pumping Session';
+            details = `<span class="text-xs text-cyan-700 font-bold">${log.amount} ml pumped</span>`;
+          } else if (log.type === 'health') {
+            iconClass = 'fa-solid fa-heart-pulse';
+            bgBadge = 'bg-purple-100 text-purple-700';
+            title = 'Health & Meds';
+            details = `<span class="text-xs text-slate-600">${log.detail || 'Given'}</span>`;
+          }
+
+          html += `
+            <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl ${bgBadge} flex items-center justify-center shrink-0 text-base">
+                  <i class="${iconClass}"></i>
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-xs font-bold text-slate-800 truncate">${title}</h4>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 font-semibold">${log.parentRole || 'Partner'}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                    <span class="font-semibold text-slate-600">${timeDisplay}</span>
+                    <span>•</span>
+                    <span>${relative}</span>
+                  </div>
+                  ${details ? `<div class="mt-0.5">${details}</div>` : ''}
+                  ${log.notes ? `<p class="text-[11px] text-slate-500 italic mt-1 bg-slate-50 p-1.5 rounded-lg border border-slate-100">"${escapeHTML(log.notes)}"</p>` : ''}
+                </div>
+              </div>
+
+              <button onclick="deleteLogEntry('${log.id}')" class="text-slate-300 hover:text-rose-500 p-2 text-xs transition-colors shrink-0" title="Delete">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </div>
+          `;
+        });
+      }
+
+      container.innerHTML = html;
+    }
+
+    window.handleDateFilterChange = function(selectedVal) {
+      activeDateFilter = selectedVal;
+      const clearBtn = document.getElementById('clearDateBtn');
+      if (selectedVal) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+      renderTimeline();
+    };
+
+    window.clearDateFilter = function() {
+      activeDateFilter = '';
+      document.getElementById('selectedDateFilter').value = '';
+      document.getElementById('clearDateBtn').classList.add('hidden');
+      renderTimeline();
+    };
+
+    function renderAll() {
+      renderMetrics();
+      renderTimeline();
+    }
+
+    window.openLogModal = function(type) {
+      document.getElementById('entryTypeInput').value = type;
+      document.getElementById('entryTimestampInput').value = getLocalISOString();
+      document.getElementById('entryNotesInput').value = '';
+
+      // Hide all sub-field sets
+      const fieldGroups = ['diaperFields', 'nursingFields', 'bottleFields', 'sleepFields', 'tummyFields', 'pumpFields', 'healthFields'];
+      fieldGroups.forEach(id => document.getElementById(id).classList.add('hidden'));
+
+      const modalIconWrap = document.getElementById('modalIconWrap');
+      const modalIcon = document.getElementById('modalIcon');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalSubtitle = document.getElementById('modalSubtitle');
+
+      if (type === 'diaper') {
+        document.getElementById('diaperFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-amber-500';
+        modalIcon.className = 'fa-solid fa-baby-carriage';
+        modalTitle.innerText = 'Log Diaper Change';
+        modalSubtitle.innerText = 'Track wet or dirty diaper for pediatrician';
+      } else if (type === 'nursing') {
+        document.getElementById('nursingFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-rose-500';
+        modalIcon.className = 'fa-solid fa-person-breastfeeding';
+        modalTitle.innerText = 'Log Breastfeeding';
+        modalSubtitle.innerText = 'Keep track of side and nursing duration';
+      } else if (type === 'bottle') {
+        document.getElementById('bottleFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-teal-600';
+        modalIcon.className = 'fa-solid fa-bottle-water';
+        modalTitle.innerText = 'Log Bottle Feed';
+        modalSubtitle.innerText = 'Formula or expressed breastmilk';
+      } else if (type === 'sleep') {
+        document.getElementById('sleepFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-indigo-600';
+        modalIcon.className = 'fa-solid fa-bed';
+        modalTitle.innerText = 'Log Sleep / Nap';
+        modalSubtitle.innerText = 'Record daytime naps or overnight sleep';
+      } else if (type === 'tummy') {
+        document.getElementById('tummyFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-emerald-600';
+        modalIcon.className = 'fa-solid fa-dumbbell';
+        modalTitle.innerText = 'Log Tummy Time';
+        modalSubtitle.innerText = 'Great for neck strength & development';
+      } else if (type === 'pump') {
+        document.getElementById('pumpFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-cyan-600';
+        modalIcon.className = 'fa-solid fa-pump-medical';
+        modalTitle.innerText = 'Log Pumping';
+        modalSubtitle.innerText = 'Record expressed milk volume';
+      } else if (type === 'health') {
+        document.getElementById('healthFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-purple-600';
+        modalIcon.className = 'fa-solid fa-heart-pulse';
+        modalTitle.innerText = 'Log Health / Meds';
+        modalSubtitle.innerText = 'Temperature, vitamin drops, or medication';
+      }
+
+      const modal = document.getElementById('logModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    window.closeLogModal = function() {
+      const modal = document.getElementById('logModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    };
+
+    window.openSyncModal = function() {
+      document.getElementById('roomCodeInput').value = currentRoomCode;
+      highlightRoleButton();
+      const modal = document.getElementById('syncModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    window.closeSyncModal = function() {
+      const modal = document.getElementById('syncModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    };
+
+    window.selectParentRole = function(role) {
+      currentParentRole = role;
+      sessionStorage.setItem('babynest_role', role);
+      highlightRoleButton();
+      updateHeaderDisplay();
+      showToast(`Switched user to ${role}`, "info");
+    };
+
+    window.applyRoomCode = function() {
+      const input = document.getElementById('roomCodeInput');
+      const newRoom = input.value.trim().toUpperCase() || 'BABY88';
+      currentRoomCode = newRoom;
+      sessionStorage.setItem('babynest_room', newRoom);
+      updateHeaderDisplay();
+      listenForLogs();
+      closeSyncModal();
+      showToast(`Synced to Room: ${newRoom}`, "success");
+    };
+
+    window.copyShareLink = function() {
+      const url = `${window.location.origin}${window.location.pathname}?room=${currentRoomCode}`;
+      const tempInput = document.createElement("input");
+      tempInput.value = url;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempInput);
+      showToast("Sync link copied! Send to partner", "success");
+    };
+
+    function highlightRoleButton() {
+      document.querySelectorAll('.role-btn').forEach(btn => {
+        if (btn.dataset.role === currentParentRole) {
+          btn.className = 'role-btn border-2 border-teal-500 bg-teal-50 py-2 rounded-xl text-xs font-bold text-teal-700 text-center';
+        } else {
+          btn.className = 'role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100';
+        }
+      });
+    }
+
+    function updateHeaderDisplay() {
+      document.getElementById('displayRoomCode').innerText = currentRoomCode;
+      document.getElementById('currentParentLabel').innerText = currentParentRole;
+    }
+
+    document.getElementById('openSyncModalBtn').addEventListener('click', openSyncModal);
+    document.getElementById('toggleParentBtn').addEventListener('click', () => {
+      const nextRole = currentParentRole === 'Mom' ? 'Dad' : (currentParentRole === 'Dad' ? 'Partner' : 'Mom');
+      selectParentRole(nextRole);
+    });
+
+    window.toggleNursingTimer = function() {
+      const btn = document.getElementById('startTimerBtn');
+      if (!timerRunning) {
+        timerRunning = true;
+        btn.innerText = "Pause";
+        btn.className = "px-3 py-1.5 bg-amber-500 text-white rounded-xl text-xs font-bold shadow-xs";
+        timerInterval = setInterval(() => {
+          timerSeconds++;
+          const mins = Math.floor(timerSeconds / 60);
+          const secs = timerSeconds % 60;
+          document.getElementById('liveTimerDisplay').innerText = 
+            `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+          document.getElementById('nursingDurationInput').value = Math.max(1, Math.round(timerSeconds / 60));
+        }, 1000);
+      } else {
+        timerRunning = false;
+        clearInterval(timerInterval);
+        btn.innerText = "Resume";
+        btn.className = "px-3 py-1.5 bg-rose-500 text-white rounded-xl text-xs font-bold shadow-xs";
+      }
+    };
+
+    window.resetNursingTimer = function() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerSeconds = 0;
+      document.getElementById('liveTimerDisplay').innerText = "00:00";
+      const btn = document.getElementById('startTimerBtn');
+      btn.innerText = "Start Timer";
+      btn.className = "px-3 py-1.5 bg-rose-500 text-white rounded-xl text-xs font-bold shadow-xs";
+    };
+
+    window.setPoopTag = function(val) {
+      document.getElementById('poopDetailInput').value = val;
+      showToast(`Selected: ${val}`, "info");
+    };
+
+    window.setBottleAmount = function(amt) {
+      document.getElementById('bottleAmountInput').value = amt;
+    };
+
+    window.setToNow = function() {
+      document.getElementById('entryTimestampInput').value = getLocalISOString();
+    };
+
+    window.setFilter = function(filter) {
+      activeFilter = filter;
+      ['all', 'feed', 'diaper', 'sleep'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (f === filter) {
+          btn.className = 'px-2.5 py-1 rounded-md bg-white text-slate-800 font-bold shadow-xs';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-md text-slate-600';
+        }
+      });
+      renderTimeline();
+    };
+
+    /* Utility Functions */
+    function getLocalISOString() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    }
+
+    function formatRelativeTime(date) {
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ${diffMins % 60}m ago`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}d ago`;
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    let toastTimeout = null;
+    function showToast(msg, type = "success") {
+      const toast = document.getElementById('customToast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = msg;
+      if (type === "success") {
+        toastIcon.className = "fa-solid fa-circle-check text-teal-400";
+      } else if (type === "info") {
+        toastIcon.className = "fa-solid fa-circle-info text-cyan-400";
+      } else {
+        toastIcon.className = "fa-solid fa-triangle-exclamation text-rose-400";
+      }
+
+      toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-4');
+      }, 2500);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initFirebase();
+      // Periodically refresh relative "time ago" counters every 60 seconds
+      setInterval(() => {
+        renderMetrics();
+      }, 60000);
+    });
+  </script>
+</body>
+</html>
