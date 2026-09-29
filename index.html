@@ -672,25 +672,14 @@
     async function initFirebase() {
       try {
         if (typeof __firebase_config !== 'undefined') {
-          const firebaseConfig = JSON.parse(__firebase_config);
-          app = initializeApp(firebaseConfig);
-          auth = getAuth(app);
-          db = getFirestore(app);
-
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth);
-          }
-          currentUser = auth.currentUser;
-        }
-      } catch (err) {
-        console.warn("Using in-memory/demo cloud sync mode:", err);
-      }
-
-      updateHeaderDisplay();
-      listenForLogs();
-    }
+              const myFirebaseConfig = {
+      apiKey: "AIzaSyD6mCRpMYkCwcyksPOrRASeyK51Mt54n3M",
+      authDomain: "diaper-tracker-11d57.firebaseapp.com",
+      projectId: "diaper-tracker-11d57",
+      storageBucket: "diaper-tracker-11d57.firebasestorage.app",
+      messagingSenderId: "908160085563",
+      appId: "1:908160085563:web:d0ad582619151cbc99b61e"
+    };
 
     function listenForLogs() {
       if (unsubscribeSnapshot) {
