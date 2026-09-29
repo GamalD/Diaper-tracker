@@ -202,6 +202,149 @@
         </button>
       </div>
 
+      <!-- Secondary Quick Log Row: Tummy Time, Pumping, Meds, Walk/Outdoors -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+        <button onclick="openLogModal('tummy')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+          <i class="fa-solid fa-dumbbell text-emerald-500"></i> Tummy Time
+        </button>
+        <button onclick="openLogModal('pump')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+          <i class="fa-solid fa-pump-medical text-cyan-600"></i> Pumping
+        </button>
+        <button onclick="openLogModal('health')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+          <i class="fa-solid fa-temperature-half text-amber-500"></i> Temp / Meds
+        </button>
+        <button onclick="openLogModal('walk')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+          <i class="fa-solid fa-person-walking text-lime-600"></i> Walk / Outdoor
+        </button>
+      </div>
+    </section>
+
+    <!-- Timeline Section -->
+    <section class="space-y-3 pt-2">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Activity Timeline</h2>
+        
+        <!-- Type Filters & Secondary Dropdown -->
+        <div class="flex items-center gap-1 text-[11px] bg-slate-200/80 p-0.5 rounded-xl font-medium text-slate-600 relative">
+          <button onclick="setFilter('all')" id="filter-all" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 font-bold shadow-xs">All</button>
+          <button onclick="setFilter('feed')" id="filter-feed" class="px-2 py-1 rounded-lg hover:text-slate-900">Feeds</button>
+          <button onclick="setFilter('diaper')" id="filter-diaper" class="px-2 py-1 rounded-lg hover:text-slate-900">Diapers</button>
+          <button onclick="setFilter('sleep')" id="filter-sleep" class="px-2 py-1 rounded-lg hover:text-slate-900">Sleep</button>
+          
+          <!-- Secondary Filter Trigger Button -->
+          <div class="relative inline-block">
+            <button type="button" id="filter-more-btn" onclick="toggleMoreFilterMenu(event)" class="px-2 py-1 rounded-lg hover:bg-slate-300/60 flex items-center gap-1 text-slate-700 font-semibold transition-colors" title="More activity filters">
+              <span id="moreFilterLabel" class="hidden font-bold">More</span>
+              <span id="moreDefaultLabel">More</span>
+              <i id="moreFilterIcon" class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200"></i>
+            </button>
+
+            <!-- Secondary Filter Popup Dropdown -->
+            <div id="secondaryFilterDropdown" class="hidden absolute right-0 top-full mt-1.5 w-44 bg-white rounded-2xl shadow-xl border border-slate-200 p-1.5 z-40 space-y-1">
+              <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Other Activities</div>
+              <button type="button" onclick="setFilter('tummy')" id="filter-tummy" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                <i class="fa-solid fa-dumbbell text-emerald-500 w-4"></i> Tummy Time
+              </button>
+              <button type="button" onclick="setFilter('pump')" id="filter-pump" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                <i class="fa-solid fa-pump-medical text-cyan-600 w-4"></i> Pumping
+              </button>
+              <button type="button" onclick="setFilter('health')" id="filter-health" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                <i class="fa-solid fa-heart-pulse text-purple-600 w-4"></i> Temp / Meds
+              </button>
+              <button type="button" onclick="setFilter('walk')" id="filter-walk" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                <i class="fa-solid fa-person-walking text-lime-600 w-4"></i> Walk / Outdoor
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day Quick Filter & Jump Bar -->
+      <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200/90 text-xs">
+        <div class="flex items-center gap-1.5 text-slate-600 font-medium">
+          <i class="fa-regular fa-calendar text-teal-600"></i>
+          <span>View Date:</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="date" id="selectedDateFilter" onchange="handleDateFilterChange(this.value)" class="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+          <button onclick="clearDateFilter()" id="clearDateBtn" class="hidden text-[11px] text-teal-600 font-bold hover:underline">
+            All Days
+          </button>
+        </div>
+      </div>
+
+      <!-- Events List Container -->
+      <div id="timelineContainer" class="space-y-2.5">
+        <!-- Placeholder / Loading Skeleton -->
+        <div class="p-6 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+          <i class="fa-solid fa-circle-notch fa-spin text-teal-500 text-xl mb-2"></i>
+          <p class="text-xs">Connecting baby log...</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- PARTNER SYNC MODAL -->
+  <div id="syncModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-house-chimney-user text-teal-600"></i>
+          Sync with Partner
+        </h3>
+        <button onclick="closeSyncModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="bg-teal-50 border border-teal-100 rounded-2xl p-3.5 text-xs text-teal-900 space-y-2">
+        <p class="font-bold flex items-center gap-1.5">
+          <i class="fa-brands fa-apple text-slate-700"></i> iPhone + <i class="fa-brands fa-android text-emerald-600"></i> Android Ready!
+        </p>
+        <p class="text-[12px] leading-relaxed text-teal-800">
+          Both parents share the same room code. Any entry logged on either phone will immediately appear on the other phone without reloading.
+        </p>
+        <div class="pt-1 border-t border-teal-200/60 flex items-center gap-1.5 text-emerald-800 font-semibold text-[11px]">
+          <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+          End-to-End Encrypted: Your secret key encrypts all data locally before syncing.
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Your Shared Family Secret Key</label>
+        <div class="flex gap-2">
+          <input type="text" id="roomCodeInput" class="w-full text-center tracking-widest font-mono uppercase font-bold text-base bg-slate-100 border border-slate-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. BABY-88">
+          <button onclick="applyRoomCode()" class="px-4 py-2.5 bg-teal-600 text-white rounded-xl font-bold text-xs hover:bg-teal-700 shrink-0">
+            Join
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-1">This key acts as your decryption password. Keep it identical on both phones.</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Your Display Name</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" onclick="selectParentRole('Mom')" class="role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100" data-role="Mom">Mom</button>
+          <button type="button" onclick="selectParentRole('Dad')" class="role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100" data-role="Dad">Dad</button>
+          <button type="button" onclick="selectParentRole('Partner')" class="role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100" data-role="Partner">Partner</button>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button onclick="copyShareLink()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-300">
+          <i class="fa-solid fa-link"></i> Copy Family Invite Link
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG ENTRY MODAL -->
+  <div id="logModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scroll safe-bottom">
+     0">Nap / Wake</span>
+        </button>
+      </div>
+
       <!-- Secondary Quick Log Row: Tummy Time, Pumping, Meds -->
       <div class="grid grid-cols-3 gap-2 pt-1">
         <button onclick="openLogModal('tummy')" class="py-2 px-3 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
