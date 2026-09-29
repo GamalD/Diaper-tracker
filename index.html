@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1004,7 +1005,7 @@
       const groups = {};
       filtered.forEach(log => {
         const d = new Date(log.timestamp);
-        const dateKey = d.toDateString();
+        const dateKey = isNaN(d.getTime()) ? new Date().toDateString() : d.toDateString();
         if (!groups[dateKey]) {
           groups[dateKey] = [];
         }
@@ -1020,7 +1021,9 @@
       for (const [dateStr, logs] of Object.entries(groups)) {
         let label = dateStr;
         const dObj = new Date(dateStr);
-        const formattedDate = dObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const formattedDate = !isNaN(dObj.getTime())
+          ? dObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+          : dateStr;
 
         if (dateStr === todayStr) {
           label = `Today • ${formattedDate}`;
@@ -1043,8 +1046,10 @@
 
         logs.forEach(log => {
           const dateObj = new Date(log.timestamp);
-          const timeDisplay = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const relative = formatRelativeTime(dateObj);
+          const timeDisplay = !isNaN(dateObj.getTime())
+            ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '--:--';
+          const relative = !isNaN(dateObj.getTime()) ? formatRelativeTime(dateObj) : '';
 
           let iconClass = 'fa-solid fa-bell';
           let bgBadge = 'bg-slate-100 text-slate-600';
@@ -1059,13 +1064,13 @@
           } else if (log.type === 'nursing') {
             iconClass = 'fa-solid fa-person-breastfeeding';
             bgBadge = 'bg-rose-100 text-rose-700';
-            title = `Nursing (${log.nursingSide} Side)`;
+            title = `Nursing (${log.nursingSide || 'Both'} Side)`;
             details = `<span class="text-xs text-slate-500">${log.durationMins || 15} mins duration</span>`;
           } else if (log.type === 'bottle') {
             iconClass = 'fa-solid fa-bottle-water';
             bgBadge = 'bg-teal-100 text-teal-700';
             title = `Bottle Feed (${log.bottleContent || 'Milk'})`;
-            details = `<span class="text-xs font-bold text-teal-700">${log.amount} ${log.unit || 'ml'}</span>`;
+            details = `<span class="text-xs font-bold text-teal-700">${log.amount || 60} ${log.unit || 'ml'}</span>`;
           } else if (log.type === 'sleep') {
             iconClass = 'fa-solid fa-moon';
             bgBadge = 'bg-indigo-100 text-indigo-700';
@@ -1080,7 +1085,7 @@
             iconClass = 'fa-solid fa-pump-medical';
             bgBadge = 'bg-cyan-100 text-cyan-700';
             title = 'Pumping Session';
-            details = `<span class="text-xs text-cyan-700 font-bold">${log.amount} ml pumped</span>`;
+            details = `<span class="text-xs text-cyan-700 font-bold">${log.amount || 80} ml pumped</span>`;
           } else if (log.type === 'health') {
             iconClass = 'fa-solid fa-heart-pulse';
             bgBadge = 'bg-purple-100 text-purple-700';
@@ -1446,7 +1451,8 @@
     }
 
     function escapeHTML(str) {
-      return str.replace(/[&<>'"]/g, 
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, 
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
     }
 
@@ -1484,3 +1490,4 @@
   </script>
 </body>
 </html>
+```
