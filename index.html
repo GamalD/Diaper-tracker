@@ -605,7 +605,7 @@
       collection, 
       doc, 
       addDoc, 
-      setDoc,
+      setDoc, 
       deleteDoc, 
       onSnapshot 
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -687,6 +687,21 @@
         return JSON.parse(dec.decode(decryptedBuffer));
       } catch (err) {
         return null;
+      }
+    }
+
+    // Helper to format bottle volume as both ml and oz
+    function formatBottleVolume(amount, unit = 'ml') {
+      const num = parseFloat(amount);
+      if (isNaN(num)) return `${amount || 60} ${unit || 'ml'}`;
+      if (unit === 'oz') {
+        const ml = Math.round(num * 30);
+        const ozClean = (num % 1 === 0) ? num : parseFloat(num.toFixed(1));
+        return `${ozClean} oz / ${ml} ml`;
+      } else {
+        const oz = num / 30;
+        const ozClean = (oz % 1 === 0) ? oz.toFixed(0) : parseFloat(oz.toFixed(1));
+        return `${num} ml / ${ozClean} oz`;
       }
     }
 
@@ -963,7 +978,7 @@
         if (last.type === 'nursing') {
           feedTypeEl.innerText = `Nursing (${last.nursingSide || 'Both'})`;
         } else {
-          feedTypeEl.innerText = `Bottle (${last.amount}${last.unit})`;
+          feedTypeEl.innerText = `Bottle (${formatBottleVolume(last.amount, last.unit)})`;
         }
       } else {
         feedTimeEl.innerText = "--";
@@ -1111,7 +1126,8 @@
             iconClass = 'fa-solid fa-bottle-water';
             bgBadge = 'bg-teal-100 text-teal-700';
             title = `Bottle Feed (${log.bottleContent || 'Milk'})`;
-            details = `<span class="text-xs font-bold text-teal-700">${log.amount || 60} ${log.unit || 'ml'}</span>`;
+            const volDisplay = formatBottleVolume(log.amount, log.unit);
+            details = `<span class="text-xs font-bold text-teal-700">${volDisplay}</span>`;
           } else if (log.type === 'sleep') {
             iconClass = 'fa-solid fa-moon';
             bgBadge = 'bg-indigo-100 text-indigo-700';
@@ -1560,7 +1576,7 @@
       const diffMins = Math.floor(diffMs / 60000);
       if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins}m ago`;
-      const diffHours = Math.floor(diffMins / 60);
+      const diffHours = Math.floor(diffMs / 60);
       if (diffHours < 24) return `${diffHours}h ${diffMins % 60}m ago`;
       const diffDays = Math.floor(diffHours / 24);
       return `${diffDays}d ago`;
