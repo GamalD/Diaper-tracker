@@ -1300,7 +1300,6 @@
         if (existingItem) {
           sleepTypeVal = existingItem.sleepType || 'Nap';
         } else {
-          // If between 10 PM (22:00) and 8 AM (08:00), default to Night Sleep
           const currentHour = new Date().getHours();
           sleepTypeVal = (currentHour >= 22 || currentHour < 8) ? 'Night Sleep' : 'Nap';
         }
@@ -1570,14 +1569,18 @@
       return local.toISOString().slice(0, 16);
     }
 
+    // Precise relative time calculation
     function formatRelativeTime(date) {
+      if (!date || isNaN(date.getTime())) return '--';
       const now = new Date();
       const diffMs = now - date;
+      if (diffMs < 0) return 'Just now';
       const diffMins = Math.floor(diffMs / 60000);
       if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins}m ago`;
-      const diffHours = Math.floor(diffMs / 60);
-      if (diffHours < 24) return `${diffHours}h ${diffMins % 60}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      const remainingMins = diffMins % 60;
+      if (diffHours < 24) return `${diffHours}h ${remainingMins}m ago`;
       const diffDays = Math.floor(diffHours / 24);
       return `${diffDays}d ago`;
     }
