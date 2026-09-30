@@ -45,7 +45,7 @@
     }
     @keyframes pulseAnimation {
       0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.15); opacity: 1; }
+      50% { transform: scale(1.15); opacity: 0.8; }
       100% { transform: scale(0.95); opacity: 0.8; }
     }
   </style>
@@ -129,10 +129,10 @@
         </div>
       </div>
 
-      <!-- Sleep Card -->
+      <!-- Sleep Card (Wake Window Timer) -->
       <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
         <div class="flex items-center justify-between text-indigo-500">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Sleep</span>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Wake Window</span>
           <i class="fa-solid fa-moon text-sm"></i>
         </div>
         <div class="my-1.5">
@@ -320,7 +320,7 @@
     </div>
   </div>
 
-  <!-- LOG ENTRY MODAL -->
+  <!-- LOG / EDIT ENTRY MODAL -->
   <div id="logModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden items-end sm:items-center justify-center">
     <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scroll safe-bottom">
       
@@ -341,27 +341,28 @@
 
       <form id="activeLogForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
         <input type="hidden" id="entryTypeInput" value="diaper">
+        <input type="hidden" id="editingLogIdInput" value="">
 
         <!-- DIAPER FIELDS -->
         <div id="diaperFields" class="space-y-3">
           <label class="block text-xs font-bold text-slate-700">Diaper Status</label>
           <div class="grid grid-cols-3 gap-2">
             <label class="cursor-pointer">
-              <input type="radio" name="diaperContent" value="Pee" checked class="peer sr-only">
+              <input type="radio" name="diaperContent" value="Pee" id="diaperRadioPee" checked class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 font-bold text-xs transition-all flex flex-col items-center gap-1">
                 <i class="fa-solid fa-droplet text-amber-500 text-sm"></i>
                 Pee Only
               </div>
             </label>
             <label class="cursor-pointer">
-              <input type="radio" name="diaperContent" value="Poop" class="peer sr-only">
+              <input type="radio" name="diaperContent" value="Poop" id="diaperRadioPoop" class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-amber-700 peer-checked:bg-amber-50 peer-checked:text-amber-900 font-bold text-xs transition-all flex flex-col items-center gap-1">
                 <i class="fa-solid fa-poop text-amber-800 text-sm"></i>
                 Poop Only
               </div>
             </label>
             <label class="cursor-pointer">
-              <input type="radio" name="diaperContent" value="Both" class="peer sr-only">
+              <input type="radio" name="diaperContent" value="Both" id="diaperRadioBoth" class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-amber-600 peer-checked:bg-amber-50 peer-checked:text-amber-800 font-bold text-xs transition-all flex flex-col items-center gap-1">
                 <div class="flex gap-1 text-xs">
                   <i class="fa-solid fa-droplet text-amber-500"></i>
@@ -405,19 +406,19 @@
           <label class="block text-xs font-bold text-slate-700">Side / Breast</label>
           <div class="grid grid-cols-3 gap-2">
             <label class="cursor-pointer">
-              <input type="radio" name="nursingSide" value="Left" checked class="peer sr-only">
+              <input type="radio" name="nursingSide" value="Left" id="nursingSideLeft" checked class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50 peer-checked:text-rose-700 font-bold text-xs transition-all">
                 Left Breast
               </div>
             </label>
             <label class="cursor-pointer">
-              <input type="radio" name="nursingSide" value="Right" class="peer sr-only">
+              <input type="radio" name="nursingSide" value="Right" id="nursingSideRight" class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50 peer-checked:text-rose-700 font-bold text-xs transition-all">
                 Right Breast
               </div>
             </label>
             <label class="cursor-pointer">
-              <input type="radio" name="nursingSide" value="Both" class="peer sr-only">
+              <input type="radio" name="nursingSide" value="Both" id="nursingSideBoth" class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50 peer-checked:text-rose-700 font-bold text-xs transition-all">
                 Both Sides
               </div>
@@ -438,13 +439,13 @@
           <label class="block text-xs font-bold text-slate-700">Contents</label>
           <div class="grid grid-cols-2 gap-2">
             <label class="cursor-pointer">
-              <input type="radio" name="bottleContent" value="Breast Milk" checked class="peer sr-only">
+              <input type="radio" name="bottleContent" value="Breast Milk" id="bottleMilk" checked class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-teal-500 peer-checked:bg-teal-50 peer-checked:text-teal-700 font-bold text-xs transition-all">
                 Express Breastmilk
               </div>
             </label>
             <label class="cursor-pointer">
-              <input type="radio" name="bottleContent" value="Formula" class="peer sr-only">
+              <input type="radio" name="bottleContent" value="Formula" id="bottleFormula" class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-teal-500 peer-checked:bg-teal-50 peer-checked:text-teal-700 font-bold text-xs transition-all">
                 Formula
               </div>
@@ -474,13 +475,13 @@
           <label class="block text-xs font-bold text-slate-700">Sleep Type</label>
           <div class="grid grid-cols-2 gap-2">
             <label class="cursor-pointer">
-              <input type="radio" name="sleepType" value="Nap" checked class="peer sr-only">
+              <input type="radio" name="sleepType" value="Nap" id="sleepTypeNap" checked class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 font-bold text-xs transition-all">
                 Daytime Nap
               </div>
             </label>
             <label class="cursor-pointer">
-              <input type="radio" name="sleepType" value="Night Sleep" class="peer sr-only">
+              <input type="radio" name="sleepType" value="Night Sleep" id="sleepTypeNight" class="peer sr-only">
               <div class="p-2.5 text-center rounded-2xl border-2 border-slate-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 font-bold text-xs transition-all">
                 Night Sleep
               </div>
@@ -543,13 +544,13 @@
             <label class="block text-xs font-bold text-slate-700 mb-1">Baby's State During Walk</label>
             <div class="grid grid-cols-2 gap-2">
               <label class="cursor-pointer">
-                <input type="radio" name="walkBabyState" value="Asleep" checked class="peer sr-only">
+                <input type="radio" name="walkBabyState" value="Asleep" id="walkStateAsleep" checked class="peer sr-only">
                 <div class="p-2 text-center rounded-xl border-2 border-slate-200 peer-checked:border-lime-600 peer-checked:bg-lime-50 peer-checked:text-lime-800 font-bold text-xs transition-all flex items-center justify-center gap-1.5">
                   <i class="fa-solid fa-moon text-indigo-500"></i> Asleep
                 </div>
               </label>
               <label class="cursor-pointer">
-                <input type="radio" name="walkBabyState" value="Awake" class="peer sr-only">
+                <input type="radio" name="walkBabyState" value="Awake" id="walkStateAwake" class="peer sr-only">
                 <div class="p-2 text-center rounded-xl border-2 border-slate-200 peer-checked:border-lime-600 peer-checked:bg-lime-50 peer-checked:text-lime-800 font-bold text-xs transition-all flex items-center justify-center gap-1.5">
                   <i class="fa-solid fa-sun text-amber-500"></i> Awake
                 </div>
@@ -604,6 +605,7 @@
       collection, 
       doc, 
       addDoc, 
+      setDoc,
       deleteDoc, 
       onSnapshot 
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -617,6 +619,7 @@
     let activeFilter = 'all';
     let activeDateFilter = '';
     let unsubscribeSnapshot = null;
+    let editingLogId = null;
 
     /* Web Cryptography: AES-GCM 256-bit encryption */
     async function deriveCryptoKey(passphrase) {
@@ -807,6 +810,7 @@
       const timestampValue = document.getElementById('entryTimestampInput').value;
       const timestamp = timestampValue ? new Date(timestampValue).toISOString() : new Date().toISOString();
       const notes = document.getElementById('entryNotesInput').value.trim();
+      const editId = document.getElementById('editingLogIdInput').value || null;
 
       const sensitiveLogData = {
         roomCode: currentRoomCode,
@@ -814,8 +818,12 @@
         type: type,
         timestamp: timestamp,
         notes: notes,
-        createdAt: new Date().toISOString()
+        updatedAt: new Date().toISOString()
       };
+
+      if (!editId) {
+        sensitiveLogData.createdAt = new Date().toISOString();
+      }
 
       if (type === 'diaper') {
         const checkedDiaper = document.querySelector('input[name="diaperContent"]:checked');
@@ -858,15 +866,30 @@
           updatedAt: new Date().toISOString()
         };
 
-        if (db && currentUser) {
-          const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'baby_activities');
-          await addDoc(logsRef, docToStore);
+        if (editId) {
+          if (db && currentUser) {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_activities', editId);
+            await setDoc(docRef, docToStore, { merge: true });
+          } else {
+            const index = allLogs.findIndex(l => l.id === editId);
+            if (index !== -1) {
+              allLogs[index] = { ...allLogs[index], ...sensitiveLogData, id: editId };
+              renderAll();
+            }
+          }
+          showToast(`Entry updated!`, "success");
         } else {
-          sensitiveLogData.id = 'temp_' + Date.now();
-          allLogs.unshift(sensitiveLogData);
-          renderAll();
+          if (db && currentUser) {
+            const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'baby_activities');
+            await addDoc(logsRef, docToStore);
+          } else {
+            sensitiveLogData.id = 'temp_' + Date.now();
+            allLogs.unshift(sensitiveLogData);
+            renderAll();
+          }
+          showToast(`Logged by ${currentParentRole}!`, "success");
         }
-        showToast(`Logged by ${currentParentRole}!`, "success");
+
         closeLogModal();
       } catch (err) {
         console.error("Save error:", err);
@@ -875,6 +898,12 @@
         saveBtn.disabled = false;
         saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save & Sync`;
       }
+    };
+
+    window.editLogEntry = function(id) {
+      const item = allLogs.find(l => l.id === id);
+      if (!item) return;
+      openLogModal(item.type, item);
     };
 
     window.deleteLogEntry = async function(id) {
@@ -941,7 +970,7 @@
         feedTypeEl.innerText = "No feeds yet";
       }
 
-      // Last Sleep
+      // Last Sleep (Calculated from end of nap / wake time)
       const sleeps = allLogs.filter(item => item.type === 'sleep');
       const sleepBadge = document.getElementById('sleepCountBadge');
       const sleepTimeEl = document.getElementById('lastSleepTime');
@@ -956,8 +985,20 @@
 
       if (sleeps.length > 0) {
         const last = sleeps[0];
-        sleepTimeEl.innerText = formatRelativeTime(new Date(last.timestamp));
-        sleepTypeEl.innerText = `${last.durationMins}m ${last.sleepType || 'Nap'}`;
+        const sleepStartMs = new Date(last.timestamp).getTime();
+        const durationMinutes = parseInt(last.durationMins, 10) || 0;
+        const wakeTime = new Date(sleepStartMs + durationMinutes * 60 * 1000);
+        const nowMs = Date.now();
+
+        if (wakeTime.getTime() > nowMs) {
+          const remainingMins = Math.ceil((wakeTime.getTime() - nowMs) / 60000);
+          sleepTimeEl.innerText = `Sleeping`;
+          sleepTypeEl.innerText = `Wakes in ~${remainingMins}m (${last.durationMins}m ${last.sleepType || 'Nap'})`;
+        } else {
+          sleepTimeEl.innerText = formatRelativeTime(wakeTime);
+          const wakeTimeStr = wakeTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          sleepTypeEl.innerText = `Woke ${wakeTimeStr} (${last.durationMins}m ${last.sleepType || 'Nap'})`;
+        }
       } else {
         sleepTimeEl.innerText = "--";
         sleepTypeEl.innerText = "No naps yet";
@@ -1075,7 +1116,10 @@
             iconClass = 'fa-solid fa-moon';
             bgBadge = 'bg-indigo-100 text-indigo-700';
             title = log.sleepType || 'Nap';
-            details = `<span class="text-xs text-slate-500">${log.durationMins || 30} mins duration</span>`;
+            const sleepMins = log.durationMins || 30;
+            const wakeDate = new Date(dateObj.getTime() + sleepMins * 60000);
+            const wakeStr = !isNaN(wakeDate.getTime()) ? wakeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            details = `<span class="text-xs text-slate-500">${sleepMins} mins duration${wakeStr ? ` • woke ${wakeStr}` : ''}</span>`;
           } else if (log.type === 'tummy') {
             iconClass = 'fa-solid fa-dumbbell';
             bgBadge = 'bg-emerald-100 text-emerald-700';
@@ -1101,11 +1145,11 @@
 
           html += `
             <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs flex items-center justify-between gap-3">
-              <div class="flex items-center gap-3 min-w-0">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
                 <div class="w-10 h-10 rounded-xl ${bgBadge} flex items-center justify-center shrink-0 text-base">
                   <i class="${iconClass}"></i>
                 </div>
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
                     <h4 class="text-xs font-bold text-slate-800 truncate">${title}</h4>
                     <span class="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 font-semibold">${log.parentRole || 'Partner'}</span>
@@ -1120,9 +1164,14 @@
                 </div>
               </div>
 
-              <button type="button" onclick="deleteLogEntry('${log.id}')" class="text-slate-300 hover:text-rose-500 p-2 text-xs transition-colors shrink-0" title="Delete">
-                <i class="fa-regular fa-trash-can"></i>
-              </button>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="editLogEntry('${log.id}')" class="text-slate-400 hover:text-teal-600 p-2 text-xs transition-colors" title="Edit">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button type="button" onclick="deleteLogEntry('${log.id}')" class="text-slate-300 hover:text-rose-500 p-2 text-xs transition-colors" title="Delete">
+                  <i class="fa-regular fa-trash-can"></i>
+                </button>
+              </div>
             </div>
           `;
         });
@@ -1154,10 +1203,27 @@
       renderTimeline();
     }
 
-    window.openLogModal = function(type) {
+    window.openLogModal = function(type, existingItem = null) {
+      editingLogId = existingItem ? existingItem.id : null;
+      document.getElementById('editingLogIdInput').value = editingLogId || '';
       document.getElementById('entryTypeInput').value = type;
-      document.getElementById('entryTimestampInput').value = getLocalISOString();
-      document.getElementById('entryNotesInput').value = '';
+
+      const saveBtn = document.getElementById('saveLogBtn');
+      if (existingItem) {
+        saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Update & Sync`;
+      } else {
+        saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save & Sync`;
+      }
+
+      // Set timestamp
+      if (existingItem && existingItem.timestamp) {
+        document.getElementById('entryTimestampInput').value = formatToLocalISO(new Date(existingItem.timestamp));
+      } else {
+        document.getElementById('entryTimestampInput').value = getLocalISOString();
+      }
+
+      // Notes
+      document.getElementById('entryNotesInput').value = (existingItem && existingItem.notes) ? existingItem.notes : '';
 
       const fieldGroups = ['diaperFields', 'nursingFields', 'bottleFields', 'sleepFields', 'tummyFields', 'pumpFields', 'healthFields', 'walkFields'];
       fieldGroups.forEach(id => {
@@ -1169,55 +1235,96 @@
       const modalIcon = document.getElementById('modalIcon');
       const modalTitle = document.getElementById('modalTitle');
       const modalSubtitle = document.getElementById('modalSubtitle');
+      const prefix = existingItem ? 'Edit ' : 'Log ';
 
       if (type === 'diaper') {
         document.getElementById('diaperFields').classList.remove('hidden');
         modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-amber-500';
         modalIcon.className = 'fa-solid fa-baby-carriage';
-        modalTitle.innerText = 'Log Diaper Change';
+        modalTitle.innerText = prefix + 'Diaper Change';
         modalSubtitle.innerText = 'Track wet or dirty diaper for pediatrician';
+
+        const content = existingItem ? (existingItem.diaperContent || 'Pee') : 'Pee';
+        document.getElementById('diaperRadioPee').checked = (content === 'Pee');
+        document.getElementById('diaperRadioPoop').checked = (content === 'Poop');
+        document.getElementById('diaperRadioBoth').checked = (content === 'Both');
+        document.getElementById('poopDetailInput').value = existingItem ? (existingItem.detail || '') : '';
       } else if (type === 'nursing') {
         document.getElementById('nursingFields').classList.remove('hidden');
         modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-rose-500';
         modalIcon.className = 'fa-solid fa-person-breastfeeding';
-        modalTitle.innerText = 'Log Breastfeeding';
+        modalTitle.innerText = prefix + 'Breastfeeding';
         modalSubtitle.innerText = 'Keep track of side and nursing duration';
+
+        const side = existingItem ? (existingItem.nursingSide || 'Left') : 'Left';
+        document.getElementById('nursingSideLeft').checked = (side === 'Left');
+        document.getElementById('nursingSideRight').checked = (side === 'Right');
+        document.getElementById('nursingSideBoth').checked = (side === 'Both');
+        document.getElementById('nursingDurationInput').value = existingItem ? (existingItem.durationMins || 15) : 15;
       } else if (type === 'bottle') {
         document.getElementById('bottleFields').classList.remove('hidden');
         modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-teal-600';
         modalIcon.className = 'fa-solid fa-bottle-water';
-        modalTitle.innerText = 'Log Bottle Feed';
+        modalTitle.innerText = prefix + 'Bottle Feed';
         modalSubtitle.innerText = 'Formula or expressed breastmilk';
+
+        const bContent = existingItem ? (existingItem.bottleContent || 'Breast Milk') : 'Breast Milk';
+        document.getElementById('bottleMilk').checked = (bContent === 'Breast Milk');
+        document.getElementById('bottleFormula').checked = (bContent === 'Formula');
+        document.getElementById('bottleAmountInput').value = existingItem ? (existingItem.amount || 60) : 60;
+        document.getElementById('bottleUnitSelect').value = existingItem ? (existingItem.unit || 'ml') : 'ml';
       } else if (type === 'sleep') {
         document.getElementById('sleepFields').classList.remove('hidden');
         modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-indigo-600';
         modalIcon.className = 'fa-solid fa-bed';
-        modalTitle.innerText = 'Log Sleep / Nap';
+        modalTitle.innerText = prefix + 'Sleep';
         modalSubtitle.innerText = 'Record daytime naps or overnight sleep';
+
+        let sleepTypeVal;
+        if (existingItem) {
+          sleepTypeVal = existingItem.sleepType || 'Nap';
+        } else {
+          // If between 10 PM (22:00) and 8 AM (08:00), default to Night Sleep
+          const currentHour = new Date().getHours();
+          sleepTypeVal = (currentHour >= 22 || currentHour < 8) ? 'Night Sleep' : 'Nap';
+        }
+
+        document.getElementById('sleepTypeNap').checked = (sleepTypeVal === 'Nap');
+        document.getElementById('sleepTypeNight').checked = (sleepTypeVal === 'Night Sleep');
+        document.getElementById('sleepDurationInput').value = existingItem ? (existingItem.durationMins || 45) : 45;
       } else if (type === 'tummy') {
         document.getElementById('tummyFields').classList.remove('hidden');
         modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-emerald-600';
         modalIcon.className = 'fa-solid fa-dumbbell';
-        modalTitle.innerText = 'Log Tummy Time';
+        modalTitle.innerText = prefix + 'Tummy Time';
         modalSubtitle.innerText = 'Great for neck strength & development';
+        document.getElementById('tummyDurationInput').value = existingItem ? (existingItem.durationMins || 5) : 5;
       } else if (type === 'pump') {
         document.getElementById('pumpFields').classList.remove('hidden');
         modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-cyan-600';
         modalIcon.className = 'fa-solid fa-pump-medical';
-        modalTitle.innerText = 'Log Pumping';
+        modalTitle.innerText = prefix + 'Pumping';
         modalSubtitle.innerText = 'Record expressed milk volume';
+        document.getElementById('pumpAmountInput').value = existingItem ? (existingItem.amount || 80) : 80;
       } else if (type === 'health') {
         document.getElementById('healthFields').classList.remove('hidden');
         modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-purple-600';
         modalIcon.className = 'fa-solid fa-heart-pulse';
-        modalTitle.innerText = 'Log Health / Meds';
+        modalTitle.innerText = prefix + 'Health / Meds';
         modalSubtitle.innerText = 'Temperature, vitamin drops, or medication';
+        document.getElementById('healthDetailInput').value = existingItem ? (existingItem.detail || '') : '';
       } else if (type === 'walk') {
         document.getElementById('walkFields').classList.remove('hidden');
         modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-lime-600';
         modalIcon.className = 'fa-solid fa-person-walking';
-        modalTitle.innerText = 'Log Walk / Outdoors';
+        modalTitle.innerText = prefix + 'Walk / Outdoors';
         modalSubtitle.innerText = 'Track fresh air, stroller naps & duration';
+
+        const state = existingItem ? (existingItem.walkState || 'Asleep') : 'Asleep';
+        document.getElementById('walkStateAsleep').checked = (state === 'Asleep');
+        document.getElementById('walkStateAwake').checked = (state === 'Awake');
+        document.getElementById('walkDurationInput').value = existingItem ? (existingItem.durationMins || 30) : 30;
+        document.getElementById('walkLocationInput').value = existingItem ? (existingItem.location || '') : '';
       }
 
       const modal = document.getElementById('logModal');
@@ -1226,6 +1333,8 @@
     };
 
     window.closeLogModal = function() {
+      editingLogId = null;
+      document.getElementById('editingLogIdInput').value = '';
       const modal = document.getElementById('logModal');
       modal.classList.add('hidden');
       modal.classList.remove('flex');
@@ -1436,6 +1545,13 @@
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       return now.toISOString().slice(0, 16);
+    }
+
+    function formatToLocalISO(date) {
+      if (isNaN(date.getTime())) return getLocalISOString();
+      const local = new Date(date);
+      local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
+      return local.toISOString().slice(0, 16);
     }
 
     function formatRelativeTime(date) {
