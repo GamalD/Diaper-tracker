@@ -35,6 +35,7 @@
     }
     .custom-scroll::-webkit-scrollbar {
       width: 4px;
+      height: 4px;
     }
     .custom-scroll::-webkit-scrollbar-thumb {
       background: #cbd5e1;
@@ -47,6 +48,22 @@
       0% { transform: scale(0.95); opacity: 0.8; }
       50% { transform: scale(1.15); opacity: 0.8; }
       100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printArea, #printArea * {
+        visibility: visible;
+      }
+      #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+        color: black;
+      }
     }
   </style>
 </head>
@@ -74,10 +91,17 @@
         </div>
       </div>
 
-      <div class="flex items-center space-x-2">
-        <button id="openSyncModalBtn" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+      <div class="flex items-center space-x-1.5">
+        <!-- Export & Report Button -->
+        <button type="button" onclick="openExportModal()" class="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all" title="Export CSV & Doctor Summary">
+          <i class="fa-solid fa-file-arrow-down text-teal-600"></i>
+          <span>Export</span>
+        </button>
+
+        <!-- Partner Sync Button -->
+        <button id="openSyncModalBtn" class="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
           <i class="fa-solid fa-qrcode text-teal-600"></i>
-          <span>Partner Sync</span>
+          <span>Sync</span>
         </button>
       </div>
     </div>
@@ -204,12 +228,15 @@
       </div>
     </section>
 
-    <!-- Timeline Section -->
-    <section class="space-y-3 pt-2">
+    <!-- Timeline & Filter Section -->
+    <section class="space-y-2.5 pt-2">
+      <!-- Section Title & Active Activity Filter Buttons -->
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Activity Timeline</h2>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <span>Activity Timeline</span>
+        </h2>
         
-        <!-- Filters & More Dropdown -->
+        <!-- Primary Activity Filters & More Dropdown -->
         <div class="flex items-center gap-1 text-[11px] bg-slate-200/80 p-0.5 rounded-xl font-medium text-slate-600 relative">
           <button type="button" onclick="setFilter('all')" id="filter-all" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 font-bold shadow-xs">All</button>
           <button type="button" onclick="setFilter('feed')" id="filter-feed" class="px-2 py-1 rounded-lg hover:text-slate-900">Feeds</button>
@@ -243,17 +270,58 @@
         </div>
       </div>
 
-      <!-- Day Quick Filter & Date Picker -->
-      <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200/90 text-xs">
-        <div class="flex items-center gap-1.5 text-slate-600 font-medium">
-          <i class="fa-regular fa-calendar text-teal-600"></i>
-          <span>View Date:</span>
+      <!-- TIME PERIOD FILTER BAR (Today, Yesterday, 7 Days, 30 Days, Custom) -->
+      <div class="bg-white rounded-2xl p-2.5 border border-slate-200 shadow-xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-regular fa-clock text-teal-600"></i> Period:
+          </span>
+          <span id="filteredResultsCount" class="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">
+            Showing all logs
+          </span>
         </div>
-        <div class="flex items-center gap-2">
-          <input type="date" id="selectedDateFilter" onchange="handleDateFilterChange(this.value)" class="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
-          <button type="button" onclick="clearDateFilter()" id="clearDateBtn" class="hidden text-[11px] text-teal-600 font-bold hover:underline">
-            All Days
+
+        <!-- Period Preset Pills (Horizontal Scroll on Mobile) -->
+        <div class="flex items-center gap-1 overflow-x-auto pb-0.5 custom-scroll text-xs">
+          <button type="button" onclick="setPeriodFilter('all')" id="period-all" class="px-2.5 py-1 rounded-xl bg-teal-600 text-white font-bold shrink-0 transition-colors">
+            All Time
           </button>
+          <button type="button" onclick="setPeriodFilter('today')" id="period-today" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
+            Today
+          </button>
+          <button type="button" onclick="setPeriodFilter('yesterday')" id="period-yesterday" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
+            Yesterday
+          </button>
+          <button type="button" onclick="setPeriodFilter('7days')" id="period-7days" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
+            Last 7 Days
+          </button>
+          <button type="button" onclick="setPeriodFilter('30days')" id="period-30days" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
+            Last 30 Days
+          </button>
+          <button type="button" onclick="setPeriodFilter('custom')" id="period-custom" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors flex items-center gap-1">
+            <i class="fa-solid fa-calendar-days text-[10px]"></i> Custom
+          </button>
+        </div>
+
+        <!-- Custom Date Range Sub-Bar (Hidden unless Custom is active) -->
+        <div id="customDateRangeBox" class="hidden pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">From Date</label>
+            <input type="date" id="customStartDateInput" onchange="handleCustomDateChange()" class="w-full text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">To Date</label>
+            <input type="date" id="customEndDateInput" onchange="handleCustomDateChange()" class="w-full text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+          </div>
+        </div>
+
+        <!-- Period Summary Micro-Stats Bar -->
+        <div id="periodSummaryBar" class="pt-1.5 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between flex-wrap gap-1">
+          <span id="periodSummaryFeeds">Feeds: 0</span>
+          <span>•</span>
+          <span id="periodSummaryDiapers">Diapers: 0</span>
+          <span>•</span>
+          <span id="periodSummarySleep">Sleep: 0h</span>
         </div>
       </div>
 
@@ -280,6 +348,96 @@
       <button type="button" onclick="openLogModal('nursing')" class="px-3.5 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-500/30 flex items-center gap-1.5 active:scale-95">
         <i class="fa-solid fa-clock-rotate-left"></i> Open & Save
       </button>
+    </div>
+  </div>
+
+  <!-- EXPORT & DOCTOR REPORT MODAL -->
+  <div id="exportModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scroll safe-bottom">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
+            <i class="fa-solid fa-file-arrow-down"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Export & Reports</h3>
+            <p class="text-[11px] text-slate-400">Download data or share with pediatrician</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeExportModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Scope Selector -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">Export Scope</label>
+        <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+          <label class="cursor-pointer">
+            <input type="radio" name="exportScope" value="filtered" id="exportScopeFiltered" checked class="peer sr-only">
+            <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-teal-500 peer-checked:bg-teal-50 peer-checked:text-teal-700">
+              Current Filter View (<span id="exportFilteredCount">0</span>)
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="exportScope" value="all" id="exportScopeAll" class="peer sr-only">
+            <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-teal-500 peer-checked:bg-teal-50 peer-checked:text-teal-700">
+              All Time History (<span id="exportAllCount">0</span>)
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Export Actions -->
+      <div class="space-y-2.5 pt-1">
+        <!-- 1. CSV Download -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-3">
+          <div>
+            <h4 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-file-csv text-emerald-600 text-sm"></i>
+              CSV Spreadsheet
+            </h4>
+            <p class="text-[11px] text-slate-500 mt-0.5">Compatible with Excel, Google Sheets & Apple Numbers.</p>
+          </div>
+          <button type="button" onclick="executeCSVDownload()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 active:scale-95 transition-transform">
+            <i class="fa-solid fa-download"></i> Save CSV
+          </button>
+        </div>
+
+        <!-- 2. Pediatrician Doctor Report -->
+        <div class="bg-teal-50/70 border border-teal-200 rounded-2xl p-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-teal-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-user-doctor text-teal-600 text-sm"></i>
+              Pediatrician Doctor Summary
+            </h4>
+            <button type="button" onclick="generatePediatricianReport()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform">
+              <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> View Report
+            </button>
+          </div>
+          <p class="text-[11px] text-teal-800">
+            Formatted summary ready to print, email, or copy for doctor appointments (wet/dirty diaper counts, feeding volumes, and sleep trends).
+          </p>
+        </div>
+      </div>
+
+      <!-- Generated Report Preview Container -->
+      <div id="reportPreviewBox" class="hidden space-y-2.5 pt-2 border-t border-slate-100">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-700">Report Preview:</span>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="copyReportToClipboard()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-semibold text-slate-700 flex items-center gap-1">
+              <i class="fa-regular fa-copy"></i> Copy Text
+            </button>
+            <button type="button" onclick="printPediatricianReport()" class="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center gap-1">
+              <i class="fa-solid fa-print"></i> Print / PDF
+            </button>
+          </div>
+        </div>
+
+        <div id="printArea" class="bg-white p-3.5 rounded-xl border border-slate-200 font-mono text-[11px] leading-relaxed text-slate-700 whitespace-pre-wrap max-h-56 overflow-y-auto custom-scroll shadow-inner">
+        </div>
+      </div>
     </div>
   </div>
 
@@ -637,7 +795,9 @@
     let currentParentRole = 'Mom';
     let allLogs = [];
     let activeFilter = 'all';
-    let activeDateFilter = '';
+    let activePeriod = 'all'; // 'all', 'today', 'yesterday', '7days', '30days', 'custom'
+    let customStartDate = '';
+    let customEndDate = '';
     let unsubscribeSnapshot = null;
     let editingLogId = null;
 
@@ -717,7 +877,7 @@
       if (unit === 'oz') {
         const ml = Math.round(num * 30);
         const ozClean = (num % 1 === 0) ? num : parseFloat(num.toFixed(1));
-        return `${ozClean} oz / ${ml} ml`;
+        return `${ml} ml / ${ozClean} oz`;
       } else {
         const oz = num / 30;
         const ozClean = (oz % 1 === 0) ? oz.toFixed(0) : parseFloat(oz.toFixed(1));
@@ -729,8 +889,8 @@
        ROBUST WALL-CLOCK NURSING TIMER WITH WAKE-LOCK & PERSISTENCE
        ------------------------------------------------------------- */
     let timerRunning = false;
-    let timerStartTime = null;          // Wall-clock epoch ms when started
-    let timerAccumulatedSeconds = 0;   // Seconds accumulated before current run
+    let timerStartTime = null;
+    let timerAccumulatedSeconds = 0;
     let timerInterval = null;
     let wakeLock = null;
 
@@ -740,7 +900,7 @@
           wakeLock = await navigator.wakeLock.request('screen');
         }
       } catch (err) {
-        // WakeLock may fail if device battery saver is active, safe to ignore
+        // Safe to ignore
       }
     }
 
@@ -776,7 +936,6 @@
         durationInput.value = Math.max(1, Math.round(totalSecs / 60));
       }
 
-      // Check whether floating banner should show
       const banner = document.getElementById('floatingNursingBanner');
       const logModal = document.getElementById('logModal');
       const isModalOpen = logModal && !logModal.classList.contains('hidden');
@@ -853,7 +1012,6 @@
         persistTimerState();
         showToast("Nursing timer started", "info");
       } else {
-        // Pause timer
         timerAccumulatedSeconds = getElapsedTimerSeconds();
         timerRunning = false;
         timerStartTime = null;
@@ -886,7 +1044,6 @@
       showToast("Timer reset", "info");
     };
 
-    // When phone wakes up or user returns from another app, immediately resync clock
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         updateTimerDisplays();
@@ -900,7 +1057,7 @@
       updateTimerDisplays();
     });
 
-    // Room and role initial setup
+    // Room and role setup
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('room')) {
       currentRoomCode = urlParams.get('room').toUpperCase();
@@ -1096,7 +1253,6 @@
           showToast(`Logged by ${currentParentRole}!`, "success");
         }
 
-        // If nursing was saved, reset the timer so it is fresh for next feed
         if (type === 'nursing' && timerRunning) {
           resetNursingTimer();
         }
@@ -1216,28 +1372,86 @@
       }
     }
 
+    /* -------------------------------------------------------------
+       ADVANCED FILTERING PIPELINE (PERIOD + ACTIVITY TYPE)
+       ------------------------------------------------------------- */
+    function getFilteredLogs() {
+      const now = new Date();
+      
+      // Calculate date boundary timestamps
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const endOfToday = startOfToday + 86400000 - 1;
+
+      const startOfYesterday = startOfToday - 86400000;
+      const endOfYesterday = startOfToday - 1;
+
+      const startOf7DaysAgo = startOfToday - (6 * 86400000);
+      const startOf30DaysAgo = startOfToday - (29 * 86400000);
+
+      return allLogs.filter(item => {
+        // 1. Activity type filter
+        let typeMatch = true;
+        if (activeFilter === 'feed') typeMatch = (item.type === 'nursing' || item.type === 'bottle');
+        else if (activeFilter === 'diaper') typeMatch = (item.type === 'diaper');
+        else if (activeFilter === 'sleep') typeMatch = (item.type === 'sleep');
+        else if (activeFilter === 'tummy') typeMatch = (item.type === 'tummy');
+        else if (activeFilter === 'pump') typeMatch = (item.type === 'pump');
+        else if (activeFilter === 'health') typeMatch = (item.type === 'health');
+        else if (activeFilter === 'walk') typeMatch = (item.type === 'walk');
+        if (!typeMatch) return false;
+
+        // 2. Period filter
+        const itemTime = new Date(item.timestamp).getTime();
+        if (isNaN(itemTime)) return true;
+
+        if (activePeriod === 'today') {
+          return itemTime >= startOfToday && itemTime <= endOfToday;
+        } else if (activePeriod === 'yesterday') {
+          return itemTime >= startOfYesterday && itemTime <= endOfYesterday;
+        } else if (activePeriod === '7days') {
+          return itemTime >= startOf7DaysAgo && itemTime <= endOfToday;
+        } else if (activePeriod === '30days') {
+          return itemTime >= startOf30DaysAgo && itemTime <= endOfToday;
+        } else if (activePeriod === 'custom') {
+          if (customStartDate) {
+            const startLimit = new Date(customStartDate + 'T00:00:00').getTime();
+            if (itemTime < startLimit) return false;
+          }
+          if (customEndDate) {
+            const endLimit = new Date(customEndDate + 'T23:59:59.999').getTime();
+            if (itemTime > endLimit) return false;
+          }
+          return true;
+        }
+        return true; // 'all'
+      });
+    }
+
     function renderTimeline() {
       const container = document.getElementById('timelineContainer');
-      let filtered = allLogs.filter(item => {
-        if (activeFilter === 'feed') return item.type === 'nursing' || item.type === 'bottle';
-        if (activeFilter === 'diaper') return item.type === 'diaper';
-        if (activeFilter === 'sleep') return item.type === 'sleep';
-        if (activeFilter === 'tummy') return item.type === 'tummy';
-        if (activeFilter === 'pump') return item.type === 'pump';
-        if (activeFilter === 'health') return item.type === 'health';
-        if (activeFilter === 'walk') return item.type === 'walk';
-        return true;
-      });
+      const filtered = getFilteredLogs();
 
-      if (activeDateFilter) {
-        filtered = filtered.filter(item => {
-          const itemDate = new Date(item.timestamp);
-          const yyyy = itemDate.getFullYear();
-          const mm = String(itemDate.getMonth() + 1).padStart(2, '0');
-          const dd = String(itemDate.getDate()).padStart(2, '0');
-          return `${yyyy}-${mm}-${dd}` === activeDateFilter;
-        });
+      // Update counters in Period Bar
+      const countEl = document.getElementById('filteredResultsCount');
+      if (countEl) {
+        countEl.innerText = `${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`;
       }
+
+      // Update export modal count badges
+      const expFilteredCount = document.getElementById('exportFilteredCount');
+      if (expFilteredCount) expFilteredCount.innerText = filtered.length;
+      const expAllCount = document.getElementById('exportAllCount');
+      if (expAllCount) expAllCount.innerText = allLogs.length;
+
+      // Calculate micro-summary for filtered logs
+      const feedsCount = filtered.filter(l => l.type === 'nursing' || l.type === 'bottle').length;
+      const diapersCount = filtered.filter(l => l.type === 'diaper').length;
+      const totalSleepMins = filtered.filter(l => l.type === 'sleep').reduce((sum, l) => sum + (parseInt(l.durationMins, 10) || 0), 0);
+      const sleepHours = (totalSleepMins / 60).toFixed(1);
+
+      document.getElementById('periodSummaryFeeds').innerText = `Feeds: ${feedsCount}`;
+      document.getElementById('periodSummaryDiapers').innerText = `Diapers: ${diapersCount}`;
+      document.getElementById('periodSummarySleep').innerText = `Sleep: ${sleepHours}h`;
 
       if (filtered.length === 0) {
         container.innerHTML = `
@@ -1245,9 +1459,9 @@
             <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
               <i class="fa-solid fa-calendar-xmark text-xl"></i>
             </div>
-            <p class="text-sm font-bold text-slate-700">No logs for this view</p>
+            <p class="text-sm font-bold text-slate-700">No logs for this filter</p>
             <p class="text-xs text-slate-400 max-w-xs mx-auto">
-              ${activeDateFilter ? 'No entries recorded on ' + activeDateFilter + '. Tap "All Days" to see full history.' : 'Tap any button above to record your first feed, diaper or nap.'}
+              No entries match the selected period and activity type. Try selecting "All Time" or clearing your filters.
             </p>
           </div>
         `;
@@ -1392,29 +1606,300 @@
       container.innerHTML = html;
     }
 
-    window.handleDateFilterChange = function(selectedVal) {
-      activeDateFilter = selectedVal;
-      const clearBtn = document.getElementById('clearDateBtn');
-      if (selectedVal) {
-        clearBtn.classList.remove('hidden');
-      } else {
-        clearBtn.classList.add('hidden');
-      }
-      renderTimeline();
-    };
-
-    window.clearDateFilter = function() {
-      activeDateFilter = '';
-      document.getElementById('selectedDateFilter').value = '';
-      document.getElementById('clearDateBtn').classList.add('hidden');
-      renderTimeline();
-    };
-
     function renderAll() {
       renderMetrics();
       renderTimeline();
     }
 
+    /* Period Filter Handling */
+    window.setPeriodFilter = function(period) {
+      activePeriod = period;
+      const periods = ['all', 'today', 'yesterday', '7days', '30days', 'custom'];
+      periods.forEach(p => {
+        const btn = document.getElementById(`period-${p}`);
+        if (btn) {
+          if (p === period) {
+            btn.className = 'px-2.5 py-1 rounded-xl bg-teal-600 text-white font-bold shrink-0 transition-colors';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors';
+          }
+        }
+      });
+
+      const customBox = document.getElementById('customDateRangeBox');
+      if (period === 'custom') {
+        customBox.classList.remove('hidden');
+        if (!customStartDate) {
+          const nowStr = new Date().toISOString().slice(0, 10);
+          document.getElementById('customStartDateInput').value = nowStr;
+          document.getElementById('customEndDateInput').value = nowStr;
+          customStartDate = nowStr;
+          customEndDate = nowStr;
+        }
+      } else {
+        customBox.classList.add('hidden');
+      }
+
+      renderTimeline();
+    };
+
+    window.handleCustomDateChange = function() {
+      customStartDate = document.getElementById('customStartDateInput').value;
+      customEndDate = document.getElementById('customEndDateInput').value;
+      renderTimeline();
+    };
+
+    /* Activity Type Filter Handling */
+    window.setFilter = function(filter) {
+      activeFilter = filter;
+      window.closeMoreFilterMenu();
+
+      const mainFilters = ['all', 'feed', 'diaper', 'sleep'];
+      const secondaryFilters = {
+        tummy: 'Tummy',
+        pump: 'Pump',
+        health: 'Health',
+        walk: 'Walk'
+      };
+
+      const moreBtn = document.getElementById('filter-more-btn');
+      const moreLabel = document.getElementById('moreFilterLabel');
+
+      mainFilters.forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (btn) {
+          if (f === filter) {
+            btn.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-800 font-bold shadow-xs';
+          } else {
+            btn.className = 'px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900';
+          }
+        }
+      });
+
+      Object.keys(secondaryFilters).forEach(f => {
+        const item = document.getElementById(`filter-${f}`);
+        if (item) {
+          if (f === filter) {
+            item.className = 'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-teal-50 text-teal-700 text-left';
+          } else {
+            item.className = 'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors';
+          }
+        }
+      });
+
+      if (secondaryFilters[filter]) {
+        moreLabel.innerText = secondaryFilters[filter];
+        moreBtn.className = 'px-2 py-1 rounded-lg bg-teal-600 text-white font-bold text-[11px] shadow-xs flex items-center gap-1';
+      } else {
+        moreLabel.innerText = 'More';
+        moreBtn.className = 'px-2 py-1 rounded-lg hover:bg-slate-300/60 flex items-center gap-1 text-slate-700 font-semibold transition-colors';
+      }
+
+      renderTimeline();
+    };
+
+    /* -------------------------------------------------------------
+       EXPORT & PEDIATRICIAN REPORT GENERATOR
+       ------------------------------------------------------------- */
+    window.openExportModal = function() {
+      const modal = document.getElementById('exportModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      
+      const filtered = getFilteredLogs();
+      document.getElementById('exportFilteredCount').innerText = filtered.length;
+      document.getElementById('exportAllCount').innerText = allLogs.length;
+    };
+
+    window.closeExportModal = function() {
+      const modal = document.getElementById('exportModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    };
+
+    function getSelectedExportLogs() {
+      const isFiltered = document.getElementById('exportScopeFiltered').checked;
+      return isFiltered ? getFilteredLogs() : allLogs;
+    }
+
+    window.executeCSVDownload = function() {
+      const logsToExport = getSelectedExportLogs();
+      if (!logsToExport || logsToExport.length === 0) {
+        showToast("No logs to export in this selection", "error");
+        return;
+      }
+
+      const rows = [
+        ["Date", "Time", "Activity Type", "Category/Details", "Duration/Volume", "Logged By", "Notes"]
+      ];
+
+      logsToExport.forEach(log => {
+        const d = new Date(log.timestamp);
+        const dateStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : '';
+        const timeStr = !isNaN(d.getTime()) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+
+        let category = '';
+        let quantity = '';
+
+        if (log.type === 'diaper') {
+          category = log.diaperContent || 'Pee';
+          quantity = log.detail || '';
+        } else if (log.type === 'nursing') {
+          category = `${log.nursingSide || 'Left'} Breast`;
+          quantity = `${log.durationMins || 15} mins`;
+        } else if (log.type === 'bottle') {
+          category = log.bottleContent || 'Milk';
+          quantity = formatBottleVolume(log.amount, log.unit);
+        } else if (log.type === 'sleep') {
+          category = log.sleepType || 'Nap';
+          quantity = `${log.durationMins || 45} mins`;
+        } else if (log.type === 'tummy') {
+          category = 'Tummy Time';
+          quantity = `${log.durationMins || 5} mins`;
+        } else if (log.type === 'pump') {
+          category = 'Pumping';
+          quantity = `${log.amount || 80} ml`;
+        } else if (log.type === 'health') {
+          category = 'Health/Meds';
+          quantity = log.detail || '';
+        } else if (log.type === 'walk') {
+          category = `Walk (${log.walkState || 'Asleep'})`;
+          quantity = `${log.durationMins || 30} mins` + (log.location ? ` - ${log.location}` : '');
+        }
+
+        const safeNotes = (log.notes || '').replace(/"/g, '""');
+        const safeCategory = (category || '').replace(/"/g, '""');
+        const safeQuantity = (quantity || '').replace(/"/g, '""');
+
+        rows.push([
+          `"${dateStr}"`,
+          `"${timeStr}"`,
+          `"${log.type}"`,
+          `"${safeCategory}"`,
+          `"${safeQuantity}"`,
+          `"${log.parentRole || 'Partner'}"`,
+          `"${safeNotes}"`
+        ]);
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      const nowStr = new Date().toISOString().slice(0, 10);
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `BabyNest_Export_${currentRoomCode}_${nowStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast(`Exported ${logsToExport.length} entries to CSV!`, "success");
+    };
+
+    window.generatePediatricianReport = function() {
+      const logs = getSelectedExportLogs();
+      const previewBox = document.getElementById('reportPreviewBox');
+      const printArea = document.getElementById('printArea');
+
+      if (!logs || logs.length === 0) {
+        showToast("No entries available for report", "error");
+        return;
+      }
+
+      previewBox.classList.remove('hidden');
+
+      // Tally totals
+      let totalDiapers = 0;
+      let peeDiapers = 0;
+      let poopDiapers = 0;
+      let bothDiapers = 0;
+      let totalBottleMl = 0;
+      let nursingSessions = 0;
+      let nursingMinutes = 0;
+      let totalSleepMinutes = 0;
+      let sleepSessions = 0;
+      const medsList = [];
+
+      logs.forEach(l => {
+        if (l.type === 'diaper') {
+          totalDiapers++;
+          if (l.diaperContent === 'Pee') peeDiapers++;
+          else if (l.diaperContent === 'Poop') poopDiapers++;
+          else if (l.diaperContent === 'Both') { bothDiapers++; peeDiapers++; poopDiapers++; }
+        } else if (l.type === 'bottle') {
+          const ml = l.unit === 'oz' ? Math.round((parseFloat(l.amount) || 0) * 30) : (parseFloat(l.amount) || 0);
+          totalBottleMl += ml;
+        } else if (l.type === 'nursing') {
+          nursingSessions++;
+          nursingMinutes += (parseInt(l.durationMins, 10) || 0);
+        } else if (l.type === 'sleep') {
+          sleepSessions++;
+          totalSleepMinutes += (parseInt(l.durationMins, 10) || 0);
+        } else if (l.type === 'health' && l.detail) {
+          const time = new Date(l.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          medsList.push(`• [${time}] ${l.detail}`);
+        }
+      });
+
+      const totalSleepHours = (totalSleepMinutes / 60).toFixed(1);
+      const totalBottleOz = (totalBottleMl / 30).toFixed(1);
+
+      const generatedDate = new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+
+      let reportText = `======================================\n`;
+      reportText += `       BABYNEST PEDIATRICIAN REPORT   \n`;
+      reportText += `======================================\n`;
+      reportText += `Family Room: ${currentRoomCode}\n`;
+      reportText += `Generated on: ${generatedDate}\n`;
+      reportText += `Scope: ${logs.length} logged events in range\n\n`;
+
+      reportText += `--------------------------------------\n`;
+      reportText += `1. DIAPER SUMMARY\n`;
+      reportText += `--------------------------------------\n`;
+      reportText += `Total Diapers: ${totalDiapers}\n`;
+      reportText += `- Wet Diapers (Pee): ${peeDiapers}\n`;
+      reportText += `- Dirty Diapers (Poop): ${poopDiapers} (Both: ${bothDiapers})\n\n`;
+
+      reportText += `--------------------------------------\n`;
+      reportText += `2. FEEDING SUMMARY\n`;
+      reportText += `--------------------------------------\n`;
+      reportText += `Bottle Volume: ${totalBottleMl} ml (~${totalBottleOz} oz)\n`;
+      reportText += `Nursing Feeds: ${nursingSessions} sessions (${nursingMinutes} total mins)\n\n`;
+
+      reportText += `--------------------------------------\n`;
+      reportText += `3. SLEEP SUMMARY\n`;
+      reportText += `--------------------------------------\n`;
+      reportText += `Total Sleep: ${totalSleepHours} hours across ${sleepSessions} sessions\n\n`;
+
+      if (medsList.length > 0) {
+        reportText += `--------------------------------------\n`;
+        reportText += `4. MEDICATIONS & HEALTH LOGS\n`;
+        reportText += `--------------------------------------\n`;
+        reportText += medsList.join('\n') + `\n\n`;
+      }
+
+      reportText += `======================================\n`;
+      reportText += `Prepared for Pediatric Check-up\n`;
+
+      printArea.innerText = reportText;
+    };
+
+    window.copyReportToClipboard = function() {
+      const text = document.getElementById('printArea').innerText;
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Report copied to clipboard!", "success");
+      }).catch(() => {
+        showToast("Could not copy report", "error");
+      });
+    };
+
+    window.printPediatricianReport = function() {
+      window.print();
+    };
+
+    /* -------------------------------------------------------------
+       MODAL HANDLING & HELPERS
+       ------------------------------------------------------------- */
     window.openLogModal = function(type, existingItem = null) {
       editingLogId = existingItem ? existingItem.id : null;
       document.getElementById('editingLogIdInput').value = editingLogId || '';
@@ -1427,14 +1912,12 @@
         saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save & Sync`;
       }
 
-      // Set timestamp
       if (existingItem && existingItem.timestamp) {
         document.getElementById('entryTimestampInput').value = formatToLocalISO(new Date(existingItem.timestamp));
       } else {
         document.getElementById('entryTimestampInput').value = getLocalISOString();
       }
 
-      // Notes
       document.getElementById('entryNotesInput').value = (existingItem && existingItem.notes) ? existingItem.notes : '';
 
       const fieldGroups = ['diaperFields', 'nursingFields', 'bottleFields', 'sleepFields', 'tummyFields', 'pumpFields', 'healthFields', 'walkFields'];
@@ -1473,7 +1956,6 @@
         document.getElementById('nursingSideRight').checked = (side === 'Right');
         document.getElementById('nursingSideBoth').checked = (side === 'Both');
         
-        // Update live timer displays
         updateTimerDisplays();
         updateTimerButtonUI();
 
@@ -1549,7 +2031,6 @@
       modal.classList.remove('hidden');
       modal.classList.add('flex');
       
-      // Update floating banner status
       updateTimerDisplays();
     };
 
@@ -1559,8 +2040,6 @@
       const modal = document.getElementById('logModal');
       modal.classList.add('hidden');
       modal.classList.remove('flex');
-      
-      // Show floating timer if running
       updateTimerDisplays();
     };
 
@@ -1685,54 +2164,6 @@
       }
     });
 
-    window.setFilter = function(filter) {
-      activeFilter = filter;
-      window.closeMoreFilterMenu();
-
-      const mainFilters = ['all', 'feed', 'diaper', 'sleep'];
-      const secondaryFilters = {
-        tummy: 'Tummy',
-        pump: 'Pump',
-        health: 'Health',
-        walk: 'Walk'
-      };
-
-      const moreBtn = document.getElementById('filter-more-btn');
-      const moreLabel = document.getElementById('moreFilterLabel');
-
-      mainFilters.forEach(f => {
-        const btn = document.getElementById(`filter-${f}`);
-        if (btn) {
-          if (f === filter) {
-            btn.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-800 font-bold shadow-xs';
-          } else {
-            btn.className = 'px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900';
-          }
-        }
-      });
-
-      Object.keys(secondaryFilters).forEach(f => {
-        const item = document.getElementById(`filter-${f}`);
-        if (item) {
-          if (f === filter) {
-            item.className = 'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-teal-50 text-teal-700 text-left';
-          } else {
-            item.className = 'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors';
-          }
-        }
-      });
-
-      if (secondaryFilters[filter]) {
-        moreLabel.innerText = secondaryFilters[filter];
-        moreBtn.className = 'px-2 py-1 rounded-lg bg-teal-600 text-white font-bold text-[11px] shadow-xs flex items-center gap-1';
-      } else {
-        moreLabel.innerText = 'More';
-        moreBtn.className = 'px-2 py-1 rounded-lg hover:bg-slate-300/60 flex items-center gap-1 text-slate-700 font-semibold transition-colors';
-      }
-
-      renderTimeline();
-    };
-
     function getLocalISOString() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -1755,10 +2186,10 @@
       const diffMins = Math.floor(diffMs / 60000);
       if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins}m ago`;
-      const diffHours = Math.floor(diffMins / 60);
-      const remainingMins = diffMins % 60;
+      const diffHours = Math.floor(diffMs / 3600000);
+      const remainingMins = Math.floor((diffMs % 3600000) / 60000);
       if (diffHours < 24) return `${diffHours}h ${remainingMins}m ago`;
-      const diffDays = Math.floor(diffHours / 24);
+      const diffDays = Math.floor(diffMs / 86400000);
       return `${diffDays}d ago`;
     }
 
