@@ -2399,5 +2399,574 @@
       modal.classList.add('flex');
       
       const filtered = getFilteredLogs();
-      document.getElementById('exportFilteredCount
+      document.getElementById('exportFilteredCount').innerText = filtered.length;
+      document.getElementById('exportAllCount').innerText = allLogs.length;
+    };
+
+    window.closeExportModal = function() {
+      const modal = document.getElementById('exportModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    };
+
+    function getSelectedExportLogs() {
+      const isFiltered = document.getElementById('exportScopeFiltered').checked;
+      return isFiltered ? getFilteredLogs() : allLogs;
+    }
+
+    window.executeCSVDownload = function() {
+      const logsToExport = getSelectedExportLogs();
+      if (!logsToExport || logsToExport.length === 0) {
+        showToast("No logs to export in this selection", "error");
+        return;
+      }
+
+      const rows = [
+        ["Date", "Time", "Activity Type", "Category/Details", "Duration/Volume", "Logged By", "Notes"]
+      ];
+
+      logsToExport.forEach(log => {
+        const d = new Date(log.timestamp);
+        const dateStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : '';
+        const timeStr = !isNaN(d.getTime()) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+
+        let category = '';
+        let quantity = '';
+
+        if (log.type === 'diaper') {
+          category = log.diaperContent || 'Pee';
+          quantity = log.detail || '';
+        } else if (log.type === 'nursing') {
+          category = `${log.nursingSide || 'Left'} Breast`;
+          quantity = `${log.durationMins || 15} mins`;
+        } else if (log.type === 'bottle') {
+          category = log.bottleContent || 'Milk';
+          quantity = formatBottleVolume(log.amount, log.unit);
+        } else if (log.type === 'sleep') {
+          category = log.sleepType || 'Nap';
+          let timeSpan = '';
+          if (log.sleepStartTime && log.sleepEndTime) {
+            const s = new Date(log.sleepStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const e = new Date(log.sleepEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            timeSpan = ` (${s} to ${e})`;
+          }
+          quantity = `${log.durationMins || 45} mins${timeSpan}`;
+        } else if (log.type === 'tummy') {
+          category = 'Tummy Time';
+          quantity = `${log.durationMins || 5} mins`;
+        } else if (log.type === 'pump') {
+          category = 'Pumping';
+          quantity = `${log.amount || 80} ml`;
+        } else if (log.type === 'health') {
+          category = 'Health/Meds';
+          quantity = log.detail || '';
+        } else if (log.type === 'walk') {
+          category = `Walk (${log.walkState || 'Asleep'})`;
+          quantity = `${log.durationMins || 30} mins` + (log.location ? ` - ${log.location}` : '');
+        }
+
+        const safeNotes = (log.notes || '').replace(/"/g, '""');
+        const safeCategory = (category || '').replace(/"/g, '""');
+        const safeQuantity = (quantity || '').replace(/"/g, '""');
+
+        rows.push([
+          `"${dateStr}"`,
+          `"${timeStr}"`,
+          `"${log.type}"`,
+          `"${safeCategory}"`,
+          `"${safeQuantity}"`,
+          `"${log.parentRole || 'Partner'}"`,
+          `"${safeNotes}"`
+        ]);
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      const nowStr = new Date().toISOString().slice(0, 10);
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `BabyNest_Export_${currentRoomCode}_${nowStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast(`Exported ${logsToExport.length} entries to CSV!`, "success");
+    };
+
+    window.generatePediatricianReport = function() {
+      const logs = getSelectedExportLogs();
+      const previewBox = document.getElementById('reportPreviewBox');
+      const printArea = document.getElementById('printArea');
+
+      if (!logs || logs.length === 0) {
+        showToast("No entries available for report", "error");
+        return;
+      }
+
+      previewBox.classList.remove('hidden');
+
+      let totalDiapers = 0;
+      let peeDiapers = 0;
+      let poopDiapers = 0;
+      let bothDiapers = 0;
+      let totalBottleMl = 0;
+      let nursingSessions = 0;
+      let nursingMinutes = 0;
+      let totalSleepMinutes = 0;
+      let sleepSessions = 0;
+      const medsList = [];
+
+      logs.forEach(l => {
+        if (l.type === 'diaper') {
+          totalDiapers++;
+          if (l.diaperContent === 'Pee') peeDiapers++;
+          else if (l.diaperContent === 'Poop') poopDiapers++;
+          else if (l.diaperContent === 'Both') { bothDiapers++; peeDiapers++; poopDiapers++; }
+        } else if (l.type === 'bottle') {
+          const ml = l.unit === 'oz' ? Math.round((parseFloat(l.amount) || 0) * 30) : (parseFloat(l.amount) || 0);
+          totalBottleMl += ml;
+        } else if (l.type === 'nursing') {
+          nursingSessions++;
+          nursingMinutes += (parseInt(l.durationMins, 10) || 0);
+        } else if (l.type === 'sleep') {
+          sleepSessions++;
+          totalSleepMinutes += (parseInt(l.durationMins, 10) || 0);
+        } else if (l.type === 'health' && l.detail) {
+          const time = new Date(l.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          medsList.push(`• [${time}] ${l.detail}`);
+        }
+      });
+
+      const totalSleepHours = (totalSleepMinutes / 60).toFixed(1);
+      const totalBottleOz = (totalBottleMl / 30).toFixed(1);
+      const generatedDate = new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+
+      let reportText = `======================================\n`;
+      reportText += `       BABYNEST PEDIATRICIAN REPORT   \n`;
+      reportText += `======================================\n`;
+      reportText += `Family Room: ${currentRoomCode}\n`;
+      reportText += `Generated on: ${generatedDate}\n`;
+      reportText += `Scope: ${logs.length} logged events in range\n\n`;
+
+      reportText += `--------------------------------------\n`;
+      reportText += `1. DIAPER SUMMARY\n`;
+      reportText += `--------------------------------------\n`;
+      reportText += `Total Diapers: ${totalDiapers}\n`;
+      reportText += `- Wet Diapers (Pee): ${peeDiapers}\n`;
+      reportText += `- Dirty Diapers (Poop): ${poopDiapers} (Both: ${bothDiapers})\n\n`;
+
+      reportText += `--------------------------------------\n`;
+      reportText += `2. FEEDING SUMMARY\n`;
+      reportText += `--------------------------------------\n`;
+      reportText += `Bottle Volume: ${totalBottleMl} ml (~${totalBottleOz} oz)\n`;
+      reportText += `Nursing Feeds: ${nursingSessions} sessions (${nursingMinutes} total mins)\n\n`;
+
+      reportText += `--------------------------------------\n`;
+      reportText += `3. SLEEP SUMMARY\n`;
+      reportText += `--------------------------------------\n`;
+      reportText += `Total Sleep: ${totalSleepHours} hours across ${sleepSessions} sessions\n\n`;
+
+      if (medsList.length > 0) {
+        reportText += `--------------------------------------\n`;
+        reportText += `4. MEDICATIONS & HEALTH LOGS\n`;
+        reportText += `--------------------------------------\n`;
+        reportText += medsList.join('\n') + `\n\n`;
+      }
+
+      // Include pending questions from Doctor Notes Tab
+      const pendingQuestions = allDoctorNotes.filter(n => !n.isAnswered);
+      if (pendingQuestions.length > 0) {
+        reportText += `--------------------------------------\n`;
+        reportText += `5. QUESTIONS TO ASK PEDIATRICIAN (${pendingQuestions.length})\n`;
+        reportText += `--------------------------------------\n`;
+        pendingQuestions.forEach((q, idx) => {
+          const pfx = q.priority === 'High' ? '[PRIORITY] ' : '';
+          reportText += `${idx + 1}. ${pfx}${q.question}\n`;
+          if (q.details) reportText += `   Note: ${q.details}\n`;
+        });
+        reportText += `\n`;
+      }
+
+      reportText += `======================================\n`;
+      reportText += `Prepared for Pediatric Check-up\n`;
+
+      printArea.innerText = reportText;
+    };
+
+    window.copyReportToClipboard = function() {
+      const text = document.getElementById('printArea').innerText;
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Report copied to clipboard!", "success");
+      }).catch(() => {
+        showToast("Could not copy report", "error");
+      });
+    };
+
+    window.printPediatricianReport = function() {
+      window.print();
+    };
+
+    /* -------------------------------------------------------------
+       MODAL HANDLING & HELPERS
+       ------------------------------------------------------------- */
+    window.openLogModal = function(type, existingItem = null) {
+      editingLogId = existingItem ? existingItem.id : null;
+      document.getElementById('editingLogIdInput').value = editingLogId || '';
+      document.getElementById('entryTypeInput').value = type;
+      wakeTimeLocked = false;
+
+      const saveBtn = document.getElementById('saveLogBtn');
+      if (existingItem) {
+        saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Update & Sync`;
+      } else {
+        saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save & Sync`;
+      }
+
+      const genTimestampBox = document.getElementById('generalTimestampBox');
+      if (type === 'sleep') {
+        genTimestampBox.classList.add('hidden');
+      } else {
+        genTimestampBox.classList.remove('hidden');
+        if (existingItem && existingItem.timestamp) {
+          document.getElementById('entryTimestampInput').value = formatToLocalISO(new Date(existingItem.timestamp));
+        } else {
+          document.getElementById('entryTimestampInput').value = getLocalISOString();
+        }
+      }
+
+      document.getElementById('entryNotesInput').value = (existingItem && existingItem.notes) ? existingItem.notes : '';
+
+      const fieldGroups = ['diaperFields', 'nursingFields', 'bottleFields', 'sleepFields', 'tummyFields', 'pumpFields', 'healthFields', 'walkFields'];
+      fieldGroups.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+
+      const modalIconWrap = document.getElementById('modalIconWrap');
+      const modalIcon = document.getElementById('modalIcon');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalSubtitle = document.getElementById('modalSubtitle');
+      const prefix = existingItem ? 'Edit ' : 'Log ';
+
+      if (type === 'diaper') {
+        document.getElementById('diaperFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-amber-500';
+        modalIcon.className = 'fa-solid fa-baby-carriage';
+        modalTitle.innerText = prefix + 'Diaper Change';
+        modalSubtitle.innerText = 'Track wet or dirty diaper for pediatrician';
+
+        const content = existingItem ? (existingItem.diaperContent || 'Pee') : 'Pee';
+        document.getElementById('diaperRadioPee').checked = (content === 'Pee');
+        document.getElementById('diaperRadioPoop').checked = (content === 'Poop');
+        document.getElementById('diaperRadioBoth').checked = (content === 'Both');
+        document.getElementById('poopDetailInput').value = existingItem ? (existingItem.detail || '') : '';
+      } else if (type === 'nursing') {
+        document.getElementById('nursingFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-rose-500';
+        modalIcon.className = 'fa-solid fa-person-breastfeeding';
+        modalTitle.innerText = prefix + 'Breastfeeding';
+        modalSubtitle.innerText = 'Keep track of side and nursing duration';
+
+        const side = existingItem ? (existingItem.nursingSide || 'Left') : 'Left';
+        document.getElementById('nursingSideLeft').checked = (side === 'Left');
+        document.getElementById('nursingSideRight').checked = (side === 'Right');
+        document.getElementById('nursingSideBoth').checked = (side === 'Both');
+        
+        updateTimerDisplays();
+        updateTimerButtonUI();
+
+        if (existingItem) {
+          document.getElementById('nursingDurationInput').value = existingItem.durationMins || 15;
+        }
+      } else if (type === 'bottle') {
+        document.getElementById('bottleFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-teal-600';
+        modalIcon.className = 'fa-solid fa-bottle-water';
+        modalTitle.innerText = prefix + 'Bottle Feed';
+        modalSubtitle.innerText = 'Formula or expressed breastmilk';
+
+        const bContent = existingItem ? (existingItem.bottleContent || 'Breast Milk') : 'Breast Milk';
+        document.getElementById('bottleMilk').checked = (bContent === 'Breast Milk');
+        document.getElementById('bottleFormula').checked = (bContent === 'Formula');
+        document.getElementById('bottleAmountInput').value = existingItem ? (existingItem.amount || 60) : 60;
+        document.getElementById('bottleUnitSelect').value = existingItem ? (existingItem.unit || 'ml') : 'ml';
+      } else if (type === 'sleep') {
+        document.getElementById('sleepFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-indigo-600';
+        modalIcon.className = 'fa-solid fa-bed';
+        modalTitle.innerText = prefix + 'Sleep';
+        modalSubtitle.innerText = 'Enter start and end times to calculate duration';
+
+        let sleepTypeVal;
+        if (existingItem) {
+          sleepTypeVal = existingItem.sleepType || 'Nap';
+        } else {
+          const currentHour = new Date().getHours();
+          sleepTypeVal = (currentHour >= 22 || currentHour < 8) ? 'Night Sleep' : 'Nap';
+        }
+
+        document.getElementById('sleepTypeNap').checked = (sleepTypeVal === 'Nap');
+        document.getElementById('sleepTypeNight').checked = (sleepTypeVal === 'Night Sleep');
+
+        if (existingItem) {
+          const duration = parseInt(existingItem.durationMins, 10) || 45;
+          let sDate = existingItem.sleepStartTime ? new Date(existingItem.sleepStartTime) : new Date(existingItem.timestamp);
+          let eDate = existingItem.sleepEndTime ? new Date(existingItem.sleepEndTime) : new Date(sDate.getTime() + duration * 60000);
+
+          document.getElementById('sleepStartInput').value = formatToLocalISO(sDate);
+          document.getElementById('sleepEndInput').value = formatToLocalISO(eDate);
+        } else {
+          const now = new Date();
+          const defaultDuration = 45;
+          const sDate = new Date(now.getTime() - defaultDuration * 60000);
+
+          document.getElementById('sleepStartInput').value = formatToLocalISO(sDate);
+          document.getElementById('sleepEndInput').value = formatToLocalISO(now);
+          wakeTimeLocked = true;
+        }
+
+        window.handleSleepTimeChange();
+      } else if (type === 'tummy') {
+        document.getElementById('tummyFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-emerald-600';
+        modalIcon.className = 'fa-solid fa-dumbbell';
+        modalTitle.innerText = prefix + 'Tummy Time';
+        modalSubtitle.innerText = 'Great for neck strength & development';
+        document.getElementById('tummyDurationInput').value = existingItem ? (existingItem.durationMins || 5) : 5;
+      } else if (type === 'pump') {
+        document.getElementById('pumpFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-cyan-600';
+        modalIcon.className = 'fa-solid fa-pump-medical';
+        modalTitle.innerText = prefix + 'Pumping';
+        modalSubtitle.innerText = 'Record expressed milk volume';
+        document.getElementById('pumpAmountInput').value = existingItem ? (existingItem.amount || 80) : 80;
+      } else if (type === 'health') {
+        document.getElementById('healthFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-purple-600';
+        modalIcon.className = 'fa-solid fa-heart-pulse';
+        modalTitle.innerText = prefix + 'Health / Meds';
+        modalSubtitle.innerText = 'Temperature, vitamin drops, or medication';
+        document.getElementById('healthDetailInput').value = existingItem ? (existingItem.detail || '') : '';
+      } else if (type === 'walk') {
+        document.getElementById('walkFields').classList.remove('hidden');
+        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-lime-600';
+        modalIcon.className = 'fa-solid fa-person-walking';
+        modalTitle.innerText = prefix + 'Walk / Outdoors';
+        modalSubtitle.innerText = 'Track fresh air, stroller naps & duration';
+
+        const state = existingItem ? (existingItem.walkState || 'Asleep') : 'Asleep';
+        document.getElementById('walkStateAsleep').checked = (state === 'Asleep');
+        document.getElementById('walkStateAwake').checked = (state === 'Awake');
+        document.getElementById('walkDurationInput').value = existingItem ? (existingItem.durationMins || 30) : 30;
+        document.getElementById('walkLocationInput').value = existingItem ? (existingItem.location || '') : '';
+      }
+
+      const modal = document.getElementById('logModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      
+      updateTimerDisplays();
+    };
+
+    window.closeLogModal = function() {
+      editingLogId = null;
+      wakeTimeLocked = false;
+      document.getElementById('editingLogIdInput').value = '';
+      const modal = document.getElementById('logModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      updateTimerDisplays();
+    };
+
+    window.openSyncModal = function() {
+      document.getElementById('roomCodeInput').value = currentRoomCode;
+      highlightRoleButton();
+      const modal = document.getElementById('syncModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    window.closeSyncModal = function() {
+      const modal = document.getElementById('syncModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    };
+
+    window.selectParentRole = function(role) {
+      currentParentRole = role;
+      localStorage.setItem('babynest_role', role);
+      sessionStorage.setItem('babynest_role', role);
+      highlightRoleButton();
+      updateHeaderDisplay();
+      showToast(`Switched user to ${role}`, "info");
+    };
+
+    window.applyRoomCode = function() {
+      const input = document.getElementById('roomCodeInput');
+      const newRoom = input.value.trim().toUpperCase() || 'BABYMARIAM';
+      currentRoomCode = newRoom;
+      localStorage.setItem('babynest_room', newRoom);
+      sessionStorage.setItem('babynest_room', newRoom);
+
+      try {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('room', newRoom);
+        window.history.replaceState({}, '', newUrl.toString());
+      } catch (e) {
+        console.warn("Could not update URL", e);
+      }
+
+      updateHeaderDisplay();
+      listenForLogs();
+      listenForDoctorNotes();
+      closeSyncModal();
+      showToast(`Synced to Room: ${newRoom}`, "success");
+    };
+
+    window.copyShareLink = function() {
+      const url = `${window.location.origin}${window.location.pathname}?room=${currentRoomCode}`;
+      const tempInput = document.createElement("input");
+      tempInput.value = url;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempInput);
+      showToast("Invite link copied to clipboard!", "success");
+    };
+
+    function highlightRoleButton() {
+      document.querySelectorAll('.role-btn').forEach(btn => {
+        if (btn.dataset.role === currentParentRole) {
+          btn.className = 'role-btn border-2 border-teal-500 bg-teal-50 py-2 rounded-xl text-xs font-bold text-teal-700 text-center';
+        } else {
+          btn.className = 'role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100';
+        }
+      });
+    }
+
+    function updateHeaderDisplay() {
+      document.getElementById('displayRoomCode').innerText = currentRoomCode;
+      document.getElementById('currentParentLabel').innerText = currentParentRole;
+    }
+
+    document.getElementById('openSyncModalBtn').addEventListener('click', openSyncModal);
+    document.getElementById('toggleParentBtn').addEventListener('click', () => {
+      const nextRole = currentParentRole === 'Mom' ? 'Dad' : (currentParentRole === 'Dad' ? 'Partner' : 'Mom');
+      selectParentRole(nextRole);
+    });
+
+    window.setPoopTag = function(val) {
+      document.getElementById('poopDetailInput').value = val;
+      showToast(`Selected: ${val}`, "info");
+    };
+
+    window.setBottleAmount = function(amt) {
+      document.getElementById('bottleAmountInput').value = amt;
+    };
+
+    window.setToNow = function() {
+      document.getElementById('entryTimestampInput').value = getLocalISOString();
+    };
+
+    window.toggleMoreFilterMenu = function(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const menu = document.getElementById('secondaryFilterDropdown');
+      const icon = document.getElementById('moreFilterIcon');
+      menu.classList.toggle('hidden');
+      if (icon) {
+        icon.classList.toggle('rotate-180');
+      }
+    };
+
+    window.closeMoreFilterMenu = function() {
+      const menu = document.getElementById('secondaryFilterDropdown');
+      const icon = document.getElementById('moreFilterIcon');
+      if (menu && !menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+      }
+      if (icon) {
+        icon.classList.remove('rotate-180');
+      }
+    };
+
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('secondaryFilterDropdown');
+      const btn = document.getElementById('filter-more-btn');
+      if (dropdown && !dropdown.contains(e.target) && btn && !btn.contains(e.target)) {
+        window.closeMoreFilterMenu();
+      }
+    });
+
+    function getLocalISOString() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    }
+
+    function formatToLocalISO(date) {
+      if (isNaN(date.getTime())) return getLocalISOString();
+      const local = new Date(date);
+      local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
+      return local.toISOString().slice(0, 16);
+    }
+
+    function formatRelativeTime(date) {
+      if (!date || isNaN(date.getTime())) return '--';
+      const now = new Date();
+      const diffMs = now - date;
+      if (diffMs < 0) return 'Just now';
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMs / 3600000);
+      const remainingMins = Math.floor((diffMs % 3600000) / 60000);
+      if (diffHours < 24) return `${diffHours}h ${remainingMins}m ago`;
+      const diffDays = Math.floor(diffMs / 86400000);
+      return `${diffDays}d ago`;
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    let toastTimeout = null;
+    function showToast(msg, type = "success") {
+      const toast = document.getElementById('customToast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = msg;
+      if (type === "success") {
+        toastIcon.className = "fa-solid fa-circle-check text-teal-400";
+      } else if (type === "info") {
+        toastIcon.className = "fa-solid fa-circle-info text-cyan-400";
+      } else {
+        toastIcon.className = "fa-solid fa-triangle-exclamation text-rose-400";
+      }
+
+      toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-4');
+      }, 2500);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initFirebase();
+      setInterval(() => {
+        renderMetrics();
+      }, 60000);
+    });
+  </script>
+</body>
+</html>
 ```
