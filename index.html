@@ -106,17 +106,22 @@
       </div>
     </div>
 
-    <!-- MAIN APP NAVIGATION TABS (Logs vs Doctor Notes) -->
+    <!-- MAIN APP NAVIGATION 3 TABS (Logs, Doctor Notes, Milestones) -->
     <div class="max-w-lg mx-auto pt-2.5 flex items-center justify-center">
-      <div class="bg-slate-100 p-1 rounded-2xl flex items-center w-full max-w-sm">
-        <button type="button" id="tabNavLogs" onclick="switchAppTab('logs')" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-white text-teal-700 shadow-xs">
+      <div class="bg-slate-100 p-1 rounded-2xl flex items-center w-full gap-1">
+        <button type="button" id="tabNavLogs" onclick="switchAppTab('logs')" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 bg-white text-teal-700 shadow-xs">
           <i class="fa-solid fa-list-check"></i>
           <span>Daily Logs</span>
         </button>
-        <button type="button" id="tabNavDoctor" onclick="switchAppTab('doctor')" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
+        <button type="button" id="tabNavDoctor" onclick="switchAppTab('doctor')" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold transition-all flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900">
           <i class="fa-solid fa-user-doctor text-indigo-500"></i>
           <span>Doctor Notes</span>
-          <span id="pendingDoctorNotesBadge" class="hidden ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-600 text-white">0</span>
+          <span id="pendingDoctorNotesBadge" class="hidden ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-600 text-white">0</span>
+        </button>
+        <button type="button" id="tabNavMilestones" onclick="switchAppTab('milestones')" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold transition-all flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-seedling text-emerald-500"></i>
+          <span>Milestones</span>
+          <span id="achievedMilestonesCountBadge" class="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800">0/24</span>
         </button>
       </div>
     </div>
@@ -421,6 +426,178 @@
       </div>
     </div>
 
+    <!-- ======================================================= -->
+    <!-- TAB 3: MILESTONES & GROWTH SPURTS VIEW                 -->
+    <!-- ======================================================= -->
+    <div id="viewMilestonesContainer" class="space-y-4 hidden">
+      <!-- Baby Age & Week Status Banner -->
+      <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white rounded-3xl p-4 shadow-md space-y-3 relative overflow-hidden">
+        <div class="relative z-10 flex items-start justify-between">
+          <div>
+            <span class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-white/20 backdrop-blur-xs px-2.5 py-0.5 rounded-full text-white">
+              <i class="fa-solid fa-seedling text-xs"></i> Developmental Journey
+            </span>
+            <h2 class="text-lg font-black mt-1" id="babyCalculatedAge">Week 8 • 2 Months Old</h2>
+            <p class="text-xs text-emerald-100 leading-relaxed mt-0.5" id="babyAgeSubtitle">
+              Based on CDC & AAP surveillance guidelines
+            </p>
+          </div>
+          <button type="button" onclick="toggleBirthDateBox()" class="shrink-0 px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-semibold backdrop-blur-xs transition-all flex items-center gap-1">
+            <i class="fa-solid fa-cake-candles"></i> Set Birthday
+          </button>
+        </div>
+
+        <!-- Birthday Setting Dropdown Box -->
+        <div id="birthdaySettingBox" class="hidden bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 space-y-2">
+          <label class="block text-xs font-bold text-white">Baby's Date of Birth</label>
+          <div class="flex gap-2">
+            <input type="date" id="babyBirthDateInput" class="w-full text-xs font-semibold bg-white text-slate-800 rounded-xl px-3 py-2 border-0 focus:ring-2 focus:ring-emerald-400">
+            <button type="button" onclick="saveBabyBirthDate()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold shrink-0 shadow-xs">
+              Save
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Mini-Bar -->
+        <div class="pt-1 space-y-1">
+          <div class="flex items-center justify-between text-[11px] text-emerald-100">
+            <span>Milestones Mastered</span>
+            <span id="milestoneProgressPercent" class="font-bold">0% (0 of 24)</span>
+          </div>
+          <div class="w-full h-2 bg-black/20 rounded-full overflow-hidden">
+            <div id="milestoneProgressBar" class="h-full bg-emerald-300 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Growth Spurts Quick Guide Card (What to Expect) -->
+      <div class="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-3.5 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-500"></i> Growth Spurt Guide & Signs
+          </h3>
+          <button type="button" onclick="toggleGrowthSpurtCard()" id="toggleGrowthSpurtBtn" class="text-[11px] font-bold text-amber-800 underline decoration-amber-400">
+            Show Timeline
+          </button>
+        </div>
+        
+        <p class="text-[12px] text-amber-950 leading-relaxed">
+          Infant growth spurts typically last <strong>2 to 4 days</strong>. Babies burn enormous energy rapidly growing bones, muscles, and brain pathways!
+        </p>
+
+        <!-- The 3 Classic Signs -->
+        <div class="grid grid-cols-3 gap-2 pt-1">
+          <div class="bg-white/80 p-2 rounded-xl border border-amber-100 text-center">
+            <i class="fa-solid fa-bottle-droplet text-rose-500 text-sm mb-1 block"></i>
+            <span class="text-[11px] font-bold text-slate-800 block">Cluster Feeds</span>
+            <span class="text-[10px] text-slate-500">Hunger surges every 1–2 hours</span>
+          </div>
+          <div class="bg-white/80 p-2 rounded-xl border border-amber-100 text-center">
+            <i class="fa-solid fa-bed text-indigo-500 text-sm mb-1 block"></i>
+            <span class="text-[11px] font-bold text-slate-800 block">Sleep Changes</span>
+            <span class="text-[10px] text-slate-500">Extra sleepy OR waking often</span>
+          </div>
+          <div class="bg-white/80 p-2 rounded-xl border border-amber-100 text-center">
+            <i class="fa-solid fa-face-frown text-amber-600 text-sm mb-1 block"></i>
+            <span class="text-[11px] font-bold text-slate-800 block">Fussiness</span>
+            <span class="text-[10px] text-slate-500">Wants more skin-to-skin & hugs</span>
+          </div>
+        </div>
+
+        <!-- Collapsible Expected Growth Spurt Windows -->
+        <div id="growthSpurtDetails" class="hidden pt-2 border-t border-amber-200/60 space-y-2 text-xs">
+          <span class="font-bold text-amber-900 block text-[11px] uppercase tracking-wide">Common Spurt Schedule (Weeks):</span>
+          
+          <div class="space-y-1.5 text-slate-700">
+            <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-start gap-2">
+              <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold rounded-lg text-[10px] shrink-0 mt-0.5">Week 1–2</span>
+              <div>
+                <strong class="text-slate-800">7 to 10 Days: First Growth Spurt</strong>
+                <p class="text-[11px] text-slate-500">Regains birth weight, establishes mother's breastmilk supply with non-stop latching.</p>
+              </div>
+            </div>
+
+            <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-start gap-2">
+              <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold rounded-lg text-[10px] shrink-0 mt-0.5">Week 2–3</span>
+              <div>
+                <strong class="text-slate-800">2 to 3 Weeks: Rapid Hunger Surge</strong>
+                <p class="text-[11px] text-slate-500">Major physical leap. Frequent night wakings and higher feeding amounts.</p>
+              </div>
+            </div>
+
+            <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-start gap-2">
+              <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold rounded-lg text-[10px] shrink-0 mt-0.5">Week 6–8</span>
+              <div>
+                <strong class="text-slate-800">6 Weeks: The "Awakening" Peak</strong>
+                <p class="text-[11px] text-slate-500">Often the most intense spurt. Baby becomes highly alert, smiles socially, but can be fussy at dusk (the "witching hour").</p>
+              </div>
+            </div>
+
+            <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-start gap-2">
+              <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold rounded-lg text-[10px] shrink-0 mt-0.5">Week 12</span>
+              <div>
+                <strong class="text-slate-800">3 Months: Physical & Visual Leap</strong>
+                <p class="text-[11px] text-slate-500">Lengthens in inches, clothing outgrown overnight, laughs and coos constantly.</p>
+              </div>
+            </div>
+
+            <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-start gap-2">
+              <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold rounded-lg text-[10px] shrink-0 mt-0.5">Month 6</span>
+              <div>
+                <strong class="text-slate-800">6 Months: Doubling Birth Weight</strong>
+                <p class="text-[11px] text-slate-500">Major motor activity (rolling, sitting). Often coincides with readiness for solid foods.</p>
+              </div>
+            </div>
+
+            <div class="bg-white p-2.5 rounded-xl border border-amber-100 flex items-start gap-2">
+              <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold rounded-lg text-[10px] shrink-0 mt-0.5">Month 9</span>
+              <div>
+                <strong class="text-slate-800">9 Months: Crawling & Brain Expansion</strong>
+                <p class="text-[11px] text-slate-500">High mobility, object permanence, exploration, and teething discomfort.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Milestone Stage Filter Navigation -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between px-1">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Milestone Checklists:</span>
+          <span class="text-[11px] text-emerald-600 font-semibold" id="currentViewingBandTitle">All Stages</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scroll text-xs">
+          <button type="button" onclick="setMilestoneBand('all')" id="bandBtn-all" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold shrink-0 transition-colors">
+            All Stages
+          </button>
+          <button type="button" onclick="setMilestoneBand('0-4w')" id="bandBtn-0-4w" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shrink-0 hover:bg-emerald-50 transition-colors">
+            Weeks 0–4 (Newborn)
+          </button>
+          <button type="button" onclick="setMilestoneBand('6-8w')" id="bandBtn-6-8w" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shrink-0 hover:bg-emerald-50 transition-colors">
+            Weeks 6–8 (2 Mos)
+          </button>
+          <button type="button" onclick="setMilestoneBand('12-16w')" id="bandBtn-12-16w" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shrink-0 hover:bg-emerald-50 transition-colors">
+            Weeks 12–16 (4 Mos)
+          </button>
+          <button type="button" onclick="setMilestoneBand('20-26w')" id="bandBtn-20-26w" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shrink-0 hover:bg-emerald-50 transition-colors">
+            Weeks 20–26 (6 Mos)
+          </button>
+          <button type="button" onclick="setMilestoneBand('30-39w')" id="bandBtn-30-39w" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shrink-0 hover:bg-emerald-50 transition-colors">
+            Weeks 30–39 (9 Mos)
+          </button>
+          <button type="button" onclick="setMilestoneBand('40-52w')" id="bandBtn-40-52w" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shrink-0 hover:bg-emerald-50 transition-colors">
+            Weeks 40–52 (1 Year)
+          </button>
+        </div>
+      </div>
+
+      <!-- Milestones List Render Container -->
+      <div id="milestonesListContainer" class="space-y-3 pb-4">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
   </main>
 
   <!-- PERSISTENT FLOATING NURSING TIMER -->
@@ -630,7 +807,7 @@
           <i class="fa-brands fa-apple text-slate-700"></i> iPhone + <i class="fa-brands fa-android text-emerald-600"></i> Android Ready!
         </p>
         <p class="text-[12px] leading-relaxed text-teal-800">
-          Both parents share the same room code. Any entry or doctor question logged on either phone will immediately appear on the other phone without reloading.
+          Both parents share the same room code. Any entry, doctor question, or milestone logged will immediately sync across both phones.
         </p>
         <div class="pt-1 border-t border-teal-200/60 flex items-center gap-1.5 text-emerald-800 font-semibold text-[11px]">
           <i class="fa-solid fa-shield-halved text-emerald-600"></i>
@@ -1019,7 +1196,50 @@
     let allDoctorNotes = [];
     let doctorNotesFilter = 'all'; // 'all', 'pending', 'answered'
     let unsubscribeDoctorSnapshot = null;
-    let activeAppTab = 'logs'; // 'logs' or 'doctor'
+    let activeAppTab = 'logs'; // 'logs', 'doctor', 'milestones'
+
+    // Milestones state & clinical reference dataset
+    let babyBirthDate = null;
+    let achievedMilestones = {}; // { milestoneId: { achievedAt: '2026-11-02', by: 'Mom' } }
+    let activeMilestoneBand = 'all';
+
+    const MILESTONES_DATA = [
+      // Weeks 0–4: Newborn Stage
+      { id: 'm_nb_1', band: '0-4w', bandLabel: 'Weeks 0–4 (Newborn)', title: 'Startle & Rooting Reflex', desc: 'Turns head toward cheek touch and startles at loud sounds', domain: 'Motor & Reflex' },
+      { id: 'm_nb_2', band: '0-4w', bandLabel: 'Weeks 0–4 (Newborn)', title: 'Close Visual Focus (8–12")', desc: 'Gazes intently at parents faces held close during feeds', domain: 'Vision & Cognitive' },
+      { id: 'm_nb_3', band: '0-4w', bandLabel: 'Weeks 0–4 (Newborn)', title: 'Brief Head Turn on Tummy', desc: 'Can briefly lift and switch head side while on chest or mat', domain: 'Motor' },
+      { id: 'm_nb_4', band: '0-4w', bandLabel: 'Weeks 0–4 (Newborn)', title: 'Throaty Sounds & Calming', desc: 'Calms to parent voice and makes soft grunts or sighs', domain: 'Social & Speech' },
+
+      // Weeks 6–8: 2 Months Stage
+      { id: 'm_2m_1', band: '6-8w', bandLabel: 'Weeks 6–8 (2 Months)', title: 'First Social Smile', desc: 'Smiles back at you when you speak, smile, or make gentle sounds', domain: 'Social & Emotional' },
+      { id: 'm_2m_2', band: '6-8w', bandLabel: 'Weeks 6–8 (2 Months)', title: 'Cooing Sounds ("Ooh", "Aah")', desc: 'Makes happy vowel-like noises other than crying', domain: 'Speech & Language' },
+      { id: 'm_2m_3', band: '6-8w', bandLabel: 'Weeks 6–8 (2 Months)', title: 'Head Lifted on Tummy (45°)', desc: 'Pushes up and holds head steady off the floor during tummy time', domain: 'Motor' },
+      { id: 'm_2m_4', band: '6-8w', bandLabel: 'Weeks 6–8 (2 Months)', title: 'Hands Open Briefly', desc: 'Fists uncurl more frequently; fingers grasp objects placed in palm', domain: 'Fine Motor' },
+
+      // Weeks 12–16: 4 Months Stage
+      { id: 'm_4m_1', band: '12-16w', bandLabel: 'Weeks 12–16 (4 Months)', title: 'Chuckling & Laughing', desc: 'Makes funny little chuckles and laughs when you tickle or play', domain: 'Social & Emotional' },
+      { id: 'm_4m_2', band: '12-16w', bandLabel: 'Weeks 12–16 (4 Months)', title: 'Pushes Up on Forearms', desc: 'Props chest off ground on elbows with steady, firm head control', domain: 'Gross Motor' },
+      { id: 'm_4m_3', band: '12-16w', bandLabel: 'Weeks 12–16 (4 Months)', title: 'Hands to Mouth & Reaching', desc: 'Discovers hands, brings toys to mouth, and swipes at hanging toys', domain: 'Cognitive & Motor' },
+      { id: 'm_4m_4', band: '12-16w', bandLabel: 'Weeks 12–16 (4 Months)', title: 'Turns Toward Your Voice', desc: 'Actively pivots head when hearing mommy or daddy enter the room', domain: 'Hearing & Language' },
+
+      // Weeks 20–26: 6 Months Stage
+      { id: 'm_6m_1', band: '20-26w', bandLabel: 'Weeks 20–26 (6 Months)', title: 'Rolls Tummy to Back', desc: 'Can flip over from belly to back (and often back to belly)', domain: 'Gross Motor' },
+      { id: 'm_6m_2', band: '20-26w', bandLabel: 'Weeks 20–26 (6 Months)', title: 'Sits with Arm Support (Tripod)', desc: 'Leans forward onto hands while sitting on the floor', domain: 'Gross Motor' },
+      { id: 'm_6m_3', band: '20-26w', bandLabel: 'Weeks 20–26 (6 Months)', title: 'Blows "Raspberries" & Squeals', desc: 'Takes turns vocalizing back and forth in little baby conversations', domain: 'Speech & Language' },
+      { id: 'm_6m_4', band: '20-26w', bandLabel: 'Weeks 20–26 (6 Months)', title: 'Passes Toy Between Hands', desc: 'Transfers a rattle or block from one hand into the other hand', domain: 'Fine Motor' },
+
+      // Weeks 30–39: 9 Months Stage
+      { id: 'm_9m_1', band: '30-39w', bandLabel: 'Weeks 30–39 (9 Months)', title: 'Sits Without Any Support', desc: 'Can sit upright on carpet playing with toys without toppling', domain: 'Gross Motor' },
+      { id: 'm_9m_2', band: '30-39w', bandLabel: 'Weeks 30–39 (9 Months)', title: 'Babbles Syllables ("Mamama", "Bababa")', desc: 'Strings repeated consonants and sounds together rhythmically', domain: 'Speech & Language' },
+      { id: 'm_9m_3', band: '30-39w', bandLabel: 'Weeks 30–39 (9 Months)', title: 'Object Permanence (Finds Hidden Toy)', desc: 'Looks for a toy that falls or is partially covered by a blanket', domain: 'Cognitive' },
+      { id: 'm_9m_4', band: '30-39w', bandLabel: 'Weeks 30–39 (9 Months)', title: 'Raises Arms to Be Held', desc: 'Reaches both arms up when wanting mom or dad to pick them up', domain: 'Social & Emotional' },
+
+      // Weeks 40–52: 1 Year Stage
+      { id: 'm_12m_1', band: '40-52w', bandLabel: 'Weeks 40–52 (1 Year)', title: 'Pulls Up to Stand & Cruises', desc: 'Pulls up on couch or crib rails and walks holding onto furniture', domain: 'Gross Motor' },
+      { id: 'm_12m_2', band: '40-52w', bandLabel: 'Weeks 40–52 (1 Year)', title: 'Pincer Grasp (Finger & Thumb)', desc: 'Picks up small pieces of food like cheerios between thumb and index', domain: 'Fine Motor' },
+      { id: 'm_12m_3', band: '40-52w', bandLabel: 'Weeks 40–52 (1 Year)', title: 'Waves Bye-Bye & Plays Pat-a-Cake', desc: 'Uses social gestures and imitates simple interactive games', domain: 'Social & Cognitive' },
+      { id: 'm_12m_4', band: '40-52w', bandLabel: 'Weeks 40–52 (1 Year)', title: 'First Meaningful Word', desc: 'Says "mama", "dada", or another specific word to call someone', domain: 'Speech & Language' }
+    ];
 
     /* Web Cryptography: AES-GCM 256-bit encryption */
     async function deriveCryptoKey(passphrase) {
@@ -1095,20 +1315,32 @@
       activeAppTab = tab;
       const logsView = document.getElementById('viewLogsContainer');
       const docView = document.getElementById('viewDoctorContainer');
+      const milesView = document.getElementById('viewMilestonesContainer');
+
       const tabNavLogs = document.getElementById('tabNavLogs');
       const tabNavDoctor = document.getElementById('tabNavDoctor');
+      const tabNavMilestones = document.getElementById('tabNavMilestones');
+
+      logsView.classList.add('hidden');
+      docView.classList.add('hidden');
+      milesView.classList.add('hidden');
+
+      tabNavLogs.className = 'flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold transition-all flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900';
+      tabNavDoctor.className = 'flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold transition-all flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900';
+      tabNavMilestones.className = 'flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold transition-all flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900';
 
       if (tab === 'logs') {
         logsView.classList.remove('hidden');
-        docView.classList.add('hidden');
-        tabNavLogs.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-white text-teal-700 shadow-xs';
-        tabNavDoctor.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900';
-      } else {
-        logsView.classList.add('hidden');
+        tabNavLogs.className = 'flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 bg-white text-teal-700 shadow-xs';
+      } else if (tab === 'doctor') {
         docView.classList.remove('hidden');
-        tabNavLogs.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900';
-        tabNavDoctor.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-700 shadow-xs';
+        tabNavDoctor.className = 'flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 bg-white text-indigo-700 shadow-xs';
         renderDoctorNotes();
+      } else if (tab === 'milestones') {
+        milesView.classList.remove('hidden');
+        tabNavMilestones.className = 'flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 bg-white text-emerald-700 shadow-xs';
+        updateBabyAgeDisplay();
+        renderMilestones();
       }
     };
 
@@ -1427,9 +1659,12 @@
         console.warn("Firebase Auth / Init fallback:", err);
       }
 
+      loadBabyBirthDate();
+      loadMilestonesLocally();
       updateHeaderDisplay();
       listenForLogs();
       listenForDoctorNotes();
+      listenForMilestonesCloud();
       restoreTimerState();
     }
 
@@ -1524,7 +1759,6 @@
 
         allDoctorNotes = decryptedNotes;
         allDoctorNotes.sort((a, b) => {
-          // Sort high priority first, then newest
           if (a.priority === 'High' && b.priority !== 'High') return -1;
           if (b.priority === 'High' && a.priority !== 'High') return 1;
           return new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt);
@@ -1535,6 +1769,277 @@
       }, (error) => {
         console.error("Doctor notes sync error:", error);
       });
+    }
+
+    /* -------------------------------------------------------------
+       MILESTONES & GROWTH SPURTS MODULE
+       ------------------------------------------------------------- */
+    function loadBabyBirthDate() {
+      const saved = localStorage.getItem(`babynest_birthdate_${currentRoomCode}`);
+      if (saved) {
+        babyBirthDate = saved;
+        const input = document.getElementById('babyBirthDateInput');
+        if (input) input.value = saved;
+      } else {
+        // Default to approximately 8 weeks ago if not set
+        const d = new Date();
+        d.setDate(d.getDate() - 56);
+        babyBirthDate = d.toISOString().slice(0, 10);
+        const input = document.getElementById('babyBirthDateInput');
+        if (input) input.value = babyBirthDate;
+      }
+      updateBabyAgeDisplay();
+    }
+
+    window.toggleBirthDateBox = function() {
+      const box = document.getElementById('birthdaySettingBox');
+      box.classList.toggle('hidden');
+    };
+
+    window.saveBabyBirthDate = async function() {
+      const input = document.getElementById('babyBirthDateInput');
+      if (!input.value) return;
+      babyBirthDate = input.value;
+      localStorage.setItem(`babynest_birthdate_${currentRoomCode}`, babyBirthDate);
+      document.getElementById('birthdaySettingBox').classList.add('hidden');
+      updateBabyAgeDisplay();
+      renderMilestones();
+      showToast("Baby's birth date saved!", "success");
+
+      // Sync birth date across phones
+      try {
+        if (db && currentUser) {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_activities', `meta_birthdate_${currentRoomCode}`);
+          const payload = await encryptPayload({ birthDate: babyBirthDate }, currentRoomCode);
+          await setDoc(docRef, { roomCode: currentRoomCode, encryptedPayload: payload, updatedAt: new Date().toISOString() }, { merge: true });
+        }
+      } catch (err) {
+        console.warn("Could not sync birthdate to cloud:", err);
+      }
+    };
+
+    function updateBabyAgeDisplay() {
+      const ageTitle = document.getElementById('babyCalculatedAge');
+      const ageSubtitle = document.getElementById('babyAgeSubtitle');
+      if (!babyBirthDate) return;
+
+      const birth = new Date(babyBirthDate + 'T00:00:00');
+      const now = new Date();
+      const diffMs = now.getTime() - birth.getTime();
+
+      if (isNaN(diffMs) || diffMs < 0) {
+        ageTitle.innerText = "Newborn Stage";
+        ageSubtitle.innerText = "Welcome to the world!";
+        return;
+      }
+
+      const diffDays = Math.floor(diffMs / (86400000));
+      const totalWeeks = Math.floor(diffDays / 7);
+      const remainingDays = diffDays % 7;
+      const totalMonths = (diffDays / 30.4375).toFixed(1);
+
+      ageTitle.innerText = `Week ${totalWeeks} (${totalWeeks}w ${remainingDays}d)`;
+      ageSubtitle.innerText = `Approximately ${totalMonths} months old • Tracking CDC & AAP Milestones`;
+    }
+
+    window.toggleGrowthSpurtCard = function() {
+      const el = document.getElementById('growthSpurtDetails');
+      const btn = document.getElementById('toggleGrowthSpurtBtn');
+      el.classList.toggle('hidden');
+      btn.innerText = el.classList.contains('hidden') ? 'Show Timeline' : 'Hide Timeline';
+    };
+
+    window.setMilestoneBand = function(band) {
+      activeMilestoneBand = band;
+      const bands = ['all', '0-4w', '6-8w', '12-16w', '20-26w', '30-39w', '40-52w'];
+      bands.forEach(b => {
+        const btn = document.getElementById(`bandBtn-${b}`);
+        if (btn) {
+          if (b === band) {
+            btn.className = 'px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold shrink-0 transition-colors';
+          } else {
+            btn.className = 'px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shrink-0 hover:bg-emerald-50 transition-colors';
+          }
+        }
+      });
+
+      const titleMap = {
+        'all': 'All Stages',
+        '0-4w': 'Weeks 0–4 (Newborn)',
+        '6-8w': 'Weeks 6–8 (~2 Months)',
+        '12-16w': 'Weeks 12–16 (~4 Months)',
+        '20-26w': 'Weeks 20–26 (~6 Months)',
+        '30-39w': 'Weeks 30–39 (~9 Months)',
+        '40-52w': 'Weeks 40–52 (~1 Year)'
+      };
+      document.getElementById('currentViewingBandTitle').innerText = titleMap[band] || 'Milestones';
+      renderMilestones();
+    };
+
+    function loadMilestonesLocally() {
+      try {
+        const raw = localStorage.getItem(`babynest_milestones_${currentRoomCode}`);
+        if (raw) {
+          achievedMilestones = JSON.parse(raw);
+          updateMilestoneProgress();
+        }
+      } catch (e) {
+        console.warn("Could not load local milestones", e);
+      }
+    }
+
+    function saveMilestonesLocally() {
+      try {
+        localStorage.setItem(`babynest_milestones_${currentRoomCode}`, JSON.stringify(achievedMilestones));
+        updateMilestoneProgress();
+      } catch (e) {
+        console.warn("Could not save local milestones", e);
+      }
+    }
+
+    function updateMilestoneProgress() {
+      const count = Object.keys(achievedMilestones).length;
+      const total = MILESTONES_DATA.length;
+      const pct = Math.round((count / total) * 100);
+
+      const countBadge = document.getElementById('achievedMilestonesCountBadge');
+      if (countBadge) countBadge.innerText = `${count}/${total}`;
+
+      const progressText = document.getElementById('milestoneProgressPercent');
+      if (progressText) progressText.innerText = `${pct}% (${count} of ${total})`;
+
+      const progressBar = document.getElementById('milestoneProgressBar');
+      if (progressBar) progressBar.style.width = `${pct}%`;
+    }
+
+    window.toggleMilestoneAchieved = async function(milestoneId) {
+      const isAlreadyAchieved = !!achievedMilestones[milestoneId];
+
+      if (isAlreadyAchieved) {
+        delete achievedMilestones[milestoneId];
+        showToast("Milestone unmarked", "info");
+      } else {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        achievedMilestones[milestoneId] = {
+          achievedAt: todayStr,
+          parentRole: currentParentRole
+        };
+        showToast("Hooray! Milestone marked!", "success");
+      }
+
+      saveMilestonesLocally();
+      renderMilestones();
+
+      // Cloud Sync
+      try {
+        if (db && currentUser) {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_activities', `milestones_${currentRoomCode}`);
+          const payload = await encryptPayload(achievedMilestones, currentRoomCode);
+          await setDoc(docRef, {
+            roomCode: currentRoomCode,
+            encryptedPayload: payload,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        }
+      } catch (err) {
+        console.warn("Firestore milestone sync warning:", err);
+      }
+    };
+
+    function listenForMilestonesCloud() {
+      if (!db || !currentUser) return;
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_activities', `milestones_${currentRoomCode}`);
+      onSnapshot(docRef, async (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data && data.encryptedPayload) {
+            const decrypted = await decryptPayload(data.encryptedPayload, currentRoomCode);
+            if (decrypted && typeof decrypted === 'object') {
+              achievedMilestones = decrypted;
+              saveMilestonesLocally();
+              renderMilestones();
+            }
+          }
+        }
+      }, (err) => console.warn("Milestone listener error:", err));
+    }
+
+    function renderMilestones() {
+      const container = document.getElementById('milestonesListContainer');
+      if (!container) return;
+
+      updateMilestoneProgress();
+
+      const filtered = MILESTONES_DATA.filter(item => {
+        if (activeMilestoneBand === 'all') return true;
+        return item.band === activeMilestoneBand;
+      });
+
+      // Group by Band
+      const groups = {};
+      filtered.forEach(item => {
+        if (!groups[item.bandLabel]) groups[item.bandLabel] = [];
+        groups[item.bandLabel].push(item);
+      });
+
+      let html = '';
+      for (const [bandTitle, items] of Object.entries(groups)) {
+        html += `
+          <div class="pt-2">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs font-black uppercase tracking-wider text-slate-700 bg-slate-200/90 px-2.5 py-0.5 rounded-md flex items-center gap-1.5">
+                <i class="fa-solid fa-flag-checkered text-emerald-600"></i> ${bandTitle}
+              </span>
+              <div class="flex-1 h-px bg-slate-200"></div>
+            </div>
+
+            <div class="space-y-2">
+        `;
+
+        items.forEach(item => {
+          const record = achievedMilestones[item.id];
+          const isDone = !!record;
+
+          const cardBg = isDone
+            ? 'bg-emerald-50/80 border-emerald-300 shadow-xs'
+            : 'bg-white border-slate-200 shadow-xs';
+
+          html += `
+            <div class="rounded-2xl p-3.5 border ${cardBg} transition-all flex items-start justify-between gap-3">
+              <div class="flex items-start gap-3 min-w-0 flex-1">
+                <button type="button" onclick="toggleMilestoneAchieved('${item.id}')" class="mt-0.5 text-lg transition-transform active:scale-90 shrink-0 ${isDone ? 'text-emerald-600' : 'text-slate-300 hover:text-emerald-500'}">
+                  <i class="${isDone ? 'fa-solid fa-circle-check text-emerald-600' : 'fa-regular fa-circle'}"></i>
+                </button>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h4 class="text-xs font-bold text-slate-800 ${isDone ? 'text-emerald-950' : ''}">
+                      ${escapeHTML(item.title)}
+                    </h4>
+                    <span class="text-[9px] uppercase font-extrabold px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+                      ${item.domain}
+                    </span>
+                  </div>
+                  <p class="text-[11px] text-slate-500 mt-1 leading-relaxed ${isDone ? 'text-emerald-800/80' : ''}">
+                    ${escapeHTML(item.desc)}
+                  </p>
+                  ${isDone ? `
+                    <div class="mt-2 text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                      <i class="fa-solid fa-award"></i> Achieved on ${record.achievedAt || 'Recent'} (Marked by ${record.parentRole || 'Partner'})
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        html += `
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
     }
 
     /* -------------------------------------------------------------
@@ -1685,7 +2190,6 @@
         closeDoctorNoteModal();
       } catch (err) {
         console.error("Doctor note handling error:", err);
-        // Fallback save to ensure parents never lose notes
         noteData.id = editId || ('doc_' + Date.now());
         const idx = allDoctorNotes.findIndex(n => n.id === noteData.id);
         if (idx !== -1) {
@@ -2623,11 +3127,18 @@
         reportText += medsList.join('\n') + `\n\n`;
       }
 
+      // Include achieved milestones count
+      const doneCount = Object.keys(achievedMilestones).length;
+      reportText += `--------------------------------------\n`;
+      reportText += `5. DEVELOPMENTAL MILESTONES ACHIEVED\n`;
+      reportText += `--------------------------------------\n`;
+      reportText += `Total Mastered: ${doneCount} of ${MILESTONES_DATA.length} core milestones\n\n`;
+
       // Include pending questions from Doctor Notes Tab
       const pendingQuestions = allDoctorNotes.filter(n => !n.isAnswered);
       if (pendingQuestions.length > 0) {
         reportText += `--------------------------------------\n`;
-        reportText += `5. QUESTIONS TO ASK PEDIATRICIAN (${pendingQuestions.length})\n`;
+        reportText += `6. QUESTIONS TO ASK PEDIATRICIAN (${pendingQuestions.length})\n`;
         reportText += `--------------------------------------\n`;
         pendingQuestions.forEach((q, idx) => {
           const pfx = q.priority === 'High' ? '[PRIORITY] ' : '';
@@ -2852,6 +3363,16 @@
       showToast(`Switched user to ${role}`, "info");
     };
 
+    function highlightRoleButton() {
+      document.querySelectorAll('.role-btn').forEach(btn => {
+        if (btn.getAttribute('data-role') === currentParentRole) {
+          btn.className = 'role-btn bg-teal-600 text-white border-teal-600 py-2 rounded-xl text-xs font-bold text-center';
+        } else {
+          btn.className = 'role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100';
+        }
+      });
+    }
+
     window.applyRoomCode = function() {
       const input = document.getElementById('roomCodeInput');
       const newRoom = input.value.trim().toUpperCase() || 'BABYMARIAM';
@@ -2868,13 +3389,25 @@
       }
 
       updateHeaderDisplay();
+      loadBabyBirthDate();
+      loadMilestonesLocally();
       listenForLogs();
       loadDoctorNotesLocally();
       listenForDoctorNotes();
+      listenForMilestonesCloud();
       restoreTimerState();
-    }
+      closeSyncModal();
+      showToast(`Joined family room: ${newRoom}`, "success");
+    };
+
+    window.copyShareLink = function() {
+      const shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomCode)}`;
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        showToast("Invite link copied to clipboard!", "success");
+      }).catch(() => {
+        prompt("Copy this link to invite partner:", shareUrl);
       });
-    }
+    };
 
     function updateHeaderDisplay() {
       document.getElementById('displayRoomCode').innerText = currentRoomCode;
