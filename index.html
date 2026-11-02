@@ -70,7 +70,7 @@
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans pb-28 select-none">
 
   <!-- Sticky Header -->
-  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-xs">
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-2.5 shadow-xs">
     <div class="max-w-lg mx-auto flex items-center justify-between">
       <div class="flex items-center space-x-2.5">
         <div class="w-9 h-9 rounded-2xl bg-teal-500 text-white flex items-center justify-center shadow-md shadow-teal-500/20">
@@ -105,237 +105,325 @@
         </button>
       </div>
     </div>
+
+    <!-- MAIN APP NAVIGATION TABS (Logs vs Doctor Notes) -->
+    <div class="max-w-lg mx-auto pt-2.5 flex items-center justify-center">
+      <div class="bg-slate-100 p-1 rounded-2xl flex items-center w-full max-w-sm">
+        <button type="button" id="tabNavLogs" onclick="switchAppTab('logs')" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-white text-teal-700 shadow-xs">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Daily Logs</span>
+        </button>
+        <button type="button" id="tabNavDoctor" onclick="switchAppTab('doctor')" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-user-doctor text-indigo-500"></i>
+          <span>Doctor Notes</span>
+          <span id="pendingDoctorNotesBadge" class="hidden ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-600 text-white">0</span>
+        </button>
+      </div>
+    </div>
   </header>
 
-  <main class="flex-1 max-w-lg w-full mx-auto px-4 pt-4 space-y-4">
+  <main class="flex-1 max-w-lg w-full mx-auto px-4 pt-3 space-y-4">
 
-    <!-- Partner Switcher Banner -->
-    <div class="bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-100 rounded-2xl p-3 flex items-center justify-between shadow-xs">
-      <div class="flex items-center gap-2">
-        <i class="fa-solid fa-user-pen text-teal-600 text-sm"></i>
-        <span class="text-xs text-slate-600">Logging as:</span>
-        <button id="toggleParentBtn" class="text-xs font-bold text-teal-700 underline decoration-teal-400 underline-offset-2">
-          <span id="currentParentLabel">Mom</span> <i class="fa-solid fa-repeat text-[10px] ml-0.5"></i>
-        </button>
-      </div>
-      <span class="text-[11px] text-slate-500" id="totalEntriesToday">0 logs today</span>
-    </div>
-
-    <!-- Metric Overview Cards -->
-    <section class="grid grid-cols-3 gap-2.5">
-      <!-- Diaper Card -->
-      <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
-        <div class="flex items-center justify-between text-amber-600">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Diaper</span>
-          <i class="fa-solid fa-toilet-paper text-sm"></i>
+    <!-- ========================================== -->
+    <!-- TAB 1: DAILY LOGS VIEW                     -->
+    <!-- ========================================== -->
+    <div id="viewLogsContainer" class="space-y-4">
+      <!-- Partner Switcher Banner -->
+      <div class="bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-100 rounded-2xl p-3 flex items-center justify-between shadow-xs">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-user-pen text-teal-600 text-sm"></i>
+          <span class="text-xs text-slate-600">Logging as:</span>
+          <button id="toggleParentBtn" class="text-xs font-bold text-teal-700 underline decoration-teal-400 underline-offset-2">
+            <span id="currentParentLabel">Mom</span> <i class="fa-solid fa-repeat text-[10px] ml-0.5"></i>
+          </button>
         </div>
-        <div class="my-1.5">
-          <div id="lastDiaperTime" class="text-base font-extrabold text-slate-800 leading-tight">--</div>
-          <div id="lastDiaperType" class="text-[11px] text-slate-500 truncate">No logs yet</div>
-        </div>
-        <div class="text-[10px] font-semibold text-amber-700/80 bg-amber-50 px-1.5 py-0.5 rounded-md self-start" id="diaperCountBadge">
-          0 today
-        </div>
+        <span class="text-[11px] text-slate-500" id="totalEntriesToday">0 logs today</span>
       </div>
 
-      <!-- Feed Card -->
-      <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
-        <div class="flex items-center justify-between text-rose-500">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Last Feed</span>
-          <i class="fa-solid fa-bottle-droplet text-sm"></i>
-        </div>
-        <div class="my-1.5">
-          <div id="lastFeedTime" class="text-base font-extrabold text-slate-800 leading-tight">--</div>
-          <div id="lastFeedType" class="text-[11px] text-slate-500 truncate">No feeds yet</div>
-        </div>
-        <div class="text-[10px] font-semibold text-rose-700/80 bg-rose-50 px-1.5 py-0.5 rounded-md self-start" id="feedCountBadge">
-          0 today
-        </div>
-      </div>
-
-      <!-- Sleep Card (Wake Window Timer) -->
-      <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
-        <div class="flex items-center justify-between text-indigo-500">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Wake Window</span>
-          <i class="fa-solid fa-moon text-sm"></i>
-        </div>
-        <div class="my-1.5">
-          <div id="lastSleepTime" class="text-base font-extrabold text-slate-800 leading-tight">--</div>
-          <div id="lastSleepType" class="text-[11px] text-slate-500 truncate">No naps yet</div>
-        </div>
-        <div class="text-[10px] font-semibold text-indigo-700/80 bg-indigo-50 px-1.5 py-0.5 rounded-md self-start" id="sleepCountBadge">
-          0 hrs today
-        </div>
-      </div>
-    </section>
-
-    <!-- Quick Entry Buttons -->
-    <section class="space-y-2">
-      <div class="flex items-center justify-between px-1">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Quick Log</h2>
-        <span class="text-[11px] text-teal-600 font-semibold">Tap to add</span>
-      </div>
-
-      <!-- Primary 4 Quick Log Buttons -->
-      <div class="grid grid-cols-4 gap-2">
-        <button onclick="openLogModal('diaper')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-500/10 active:bg-amber-500/20 text-amber-700 border border-amber-200/60 transition-transform active:scale-95">
-          <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
-            <i class="fa-solid fa-baby-carriage"></i>
+      <!-- Metric Overview Cards -->
+      <section class="grid grid-cols-3 gap-2.5">
+        <!-- Diaper Card -->
+        <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
+          <div class="flex items-center justify-between text-amber-600">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Diaper</span>
+            <i class="fa-solid fa-toilet-paper text-sm"></i>
           </div>
-          <span class="text-xs font-bold">Diaper</span>
-          <span class="text-[10px] text-amber-800/70">Pee / Poop</span>
-        </button>
-
-        <button onclick="openLogModal('nursing')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-rose-500/10 active:bg-rose-500/20 text-rose-700 border border-rose-200/60 transition-transform active:scale-95">
-          <div class="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
-            <i class="fa-solid fa-person-breastfeeding"></i>
+          <div class="my-1.5">
+            <div id="lastDiaperTime" class="text-base font-extrabold text-slate-800 leading-tight">--</div>
+            <div id="lastDiaperType" class="text-[11px] text-slate-500 truncate">No logs yet</div>
           </div>
-          <span class="text-xs font-bold">Nursing</span>
-          <span class="text-[10px] text-rose-800/70">Left / Right</span>
-        </button>
-
-        <button onclick="openLogModal('bottle')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-teal-500/10 active:bg-teal-500/20 text-teal-700 border border-teal-200/60 transition-transform active:scale-95">
-          <div class="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
-            <i class="fa-solid fa-bottle-water"></i>
+          <div class="text-[10px] font-semibold text-amber-700/80 bg-amber-50 px-1.5 py-0.5 rounded-md self-start" id="diaperCountBadge">
+            0 today
           </div>
-          <span class="text-xs font-bold">Bottle</span>
-          <span class="text-[10px] text-teal-800/70">Milk / Formula</span>
-        </button>
+        </div>
 
-        <button onclick="openLogModal('sleep')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-500/10 active:bg-indigo-500/20 text-indigo-700 border border-indigo-200/60 transition-transform active:scale-95">
-          <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
-            <i class="fa-solid fa-bed"></i>
+        <!-- Feed Card -->
+        <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
+          <div class="flex items-center justify-between text-rose-500">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Last Feed</span>
+            <i class="fa-solid fa-bottle-droplet text-sm"></i>
           </div>
-          <span class="text-xs font-bold">Sleep</span>
-          <span class="text-[10px] text-indigo-800/70">Nap / Wake</span>
-        </button>
-      </div>
+          <div class="my-1.5">
+            <div id="lastFeedTime" class="text-base font-extrabold text-slate-800 leading-tight">--</div>
+            <div id="lastFeedType" class="text-[11px] text-slate-500 truncate">No feeds yet</div>
+          </div>
+          <div class="text-[10px] font-semibold text-rose-700/80 bg-rose-50 px-1.5 py-0.5 rounded-md self-start" id="feedCountBadge">
+            0 today
+          </div>
+        </div>
 
-      <!-- Secondary 4 Quick Log Buttons -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-        <button onclick="openLogModal('tummy')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
-          <i class="fa-solid fa-dumbbell text-emerald-500"></i> Tummy Time
-        </button>
-        <button onclick="openLogModal('pump')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
-          <i class="fa-solid fa-pump-medical text-cyan-600"></i> Pumping
-        </button>
-        <button onclick="openLogModal('health')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
-          <i class="fa-solid fa-temperature-half text-amber-500"></i> Temp / Meds
-        </button>
-        <button onclick="openLogModal('walk')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
-          <i class="fa-solid fa-person-walking text-lime-600"></i> Walk / Outdoor
-        </button>
-      </div>
-    </section>
+        <!-- Sleep Card (Wake Window Timer) -->
+        <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs flex flex-col justify-between relative overflow-hidden">
+          <div class="flex items-center justify-between text-indigo-500">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Wake Window</span>
+            <i class="fa-solid fa-moon text-sm"></i>
+          </div>
+          <div class="my-1.5">
+            <div id="lastSleepTime" class="text-base font-extrabold text-slate-800 leading-tight">--</div>
+            <div id="lastSleepType" class="text-[11px] text-slate-500 truncate">No naps yet</div>
+          </div>
+          <div class="text-[10px] font-semibold text-indigo-700/80 bg-indigo-50 px-1.5 py-0.5 rounded-md self-start" id="sleepCountBadge">
+            0 hrs today
+          </div>
+        </div>
+      </section>
 
-    <!-- Timeline & Filter Section -->
-    <section class="space-y-2.5 pt-2">
-      <!-- Section Title & Active Activity Filter Buttons -->
-      <div class="flex items-center justify-between flex-wrap gap-2">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-          <span>Activity Timeline</span>
-        </h2>
-        
-        <!-- Primary Activity Filters & More Dropdown -->
-        <div class="flex items-center gap-1 text-[11px] bg-slate-200/80 p-0.5 rounded-xl font-medium text-slate-600 relative">
-          <button type="button" onclick="setFilter('all')" id="filter-all" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 font-bold shadow-xs">All</button>
-          <button type="button" onclick="setFilter('feed')" id="filter-feed" class="px-2 py-1 rounded-lg hover:text-slate-900">Feeds</button>
-          <button type="button" onclick="setFilter('diaper')" id="filter-diaper" class="px-2 py-1 rounded-lg hover:text-slate-900">Diapers</button>
-          <button type="button" onclick="setFilter('sleep')" id="filter-sleep" class="px-2 py-1 rounded-lg hover:text-slate-900">Sleep</button>
+      <!-- Quick Entry Buttons -->
+      <section class="space-y-2">
+        <div class="flex items-center justify-between px-1">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Quick Log</h2>
+          <span class="text-[11px] text-teal-600 font-semibold">Tap to add</span>
+        </div>
+
+        <!-- Primary 4 Quick Log Buttons -->
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="openLogModal('diaper')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-500/10 active:bg-amber-500/20 text-amber-700 border border-amber-200/60 transition-transform active:scale-95">
+            <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
+              <i class="fa-solid fa-baby-carriage"></i>
+            </div>
+            <span class="text-xs font-bold">Diaper</span>
+            <span class="text-[10px] text-amber-800/70">Pee / Poop</span>
+          </button>
+
+          <button onclick="openLogModal('nursing')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-rose-500/10 active:bg-rose-500/20 text-rose-700 border border-rose-200/60 transition-transform active:scale-95">
+            <div class="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
+              <i class="fa-solid fa-person-breastfeeding"></i>
+            </div>
+            <span class="text-xs font-bold">Nursing</span>
+            <span class="text-[10px] text-rose-800/70">Left / Right</span>
+          </button>
+
+          <button onclick="openLogModal('bottle')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-teal-500/10 active:bg-teal-500/20 text-teal-700 border border-teal-200/60 transition-transform active:scale-95">
+            <div class="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
+              <i class="fa-solid fa-bottle-water"></i>
+            </div>
+            <span class="text-xs font-bold">Bottle</span>
+            <span class="text-[10px] text-teal-800/70">Milk / Formula</span>
+          </button>
+
+          <button onclick="openLogModal('sleep')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-500/10 active:bg-indigo-500/20 text-indigo-700 border border-indigo-200/60 transition-transform active:scale-95">
+            <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm mb-1.5 text-base">
+              <i class="fa-solid fa-bed"></i>
+            </div>
+            <span class="text-xs font-bold">Sleep</span>
+            <span class="text-[10px] text-indigo-800/70">Nap / Wake</span>
+          </button>
+        </div>
+
+        <!-- Secondary 4 Quick Log Buttons -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+          <button onclick="openLogModal('tummy')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+            <i class="fa-solid fa-dumbbell text-emerald-500"></i> Tummy Time
+          </button>
+          <button onclick="openLogModal('pump')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+            <i class="fa-solid fa-pump-medical text-cyan-600"></i> Pumping
+          </button>
+          <button onclick="openLogModal('health')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+            <i class="fa-solid fa-temperature-half text-amber-500"></i> Temp / Meds
+          </button>
+          <button onclick="openLogModal('walk')" class="py-2.5 px-2 bg-white border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-98">
+            <i class="fa-solid fa-person-walking text-lime-600"></i> Walk / Outdoor
+          </button>
+        </div>
+      </section>
+
+      <!-- Timeline & Filter Section -->
+      <section class="space-y-2.5 pt-2">
+        <!-- Section Title & Active Activity Filter Buttons -->
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <span>Activity Timeline</span>
+          </h2>
           
-          <!-- Secondary Menu Trigger -->
-          <div class="relative inline-block">
-            <button type="button" id="filter-more-btn" onclick="toggleMoreFilterMenu(event)" class="px-2 py-1 rounded-lg hover:bg-slate-300/60 flex items-center gap-1 text-slate-700 font-semibold transition-colors">
-              <span id="moreFilterLabel">More</span>
-              <i id="moreFilterIcon" class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200"></i>
-            </button>
+          <!-- Primary Activity Filters & More Dropdown -->
+          <div class="flex items-center gap-1 text-[11px] bg-slate-200/80 p-0.5 rounded-xl font-medium text-slate-600 relative">
+            <button type="button" onclick="setFilter('all')" id="filter-all" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 font-bold shadow-xs">All</button>
+            <button type="button" onclick="setFilter('feed')" id="filter-feed" class="px-2 py-1 rounded-lg hover:text-slate-900">Feeds</button>
+            <button type="button" onclick="setFilter('diaper')" id="filter-diaper" class="px-2 py-1 rounded-lg hover:text-slate-900">Diapers</button>
+            <button type="button" onclick="setFilter('sleep')" id="filter-sleep" class="px-2 py-1 rounded-lg hover:text-slate-900">Sleep</button>
+            
+            <!-- Secondary Menu Trigger -->
+            <div class="relative inline-block">
+              <button type="button" id="filter-more-btn" onclick="toggleMoreFilterMenu(event)" class="px-2 py-1 rounded-lg hover:bg-slate-300/60 flex items-center gap-1 text-slate-700 font-semibold transition-colors">
+                <span id="moreFilterLabel">More</span>
+                <i id="moreFilterIcon" class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200"></i>
+              </button>
 
-            <!-- Secondary Dropdown Menu -->
-            <div id="secondaryFilterDropdown" class="hidden absolute right-0 top-full mt-1.5 w-44 bg-white rounded-2xl shadow-xl border border-slate-200 p-1.5 z-40 space-y-1">
-              <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Other Activities</div>
-              <button type="button" onclick="setFilter('tummy')" id="filter-tummy" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
-                <i class="fa-solid fa-dumbbell text-emerald-500 w-4"></i> Tummy Time
-              </button>
-              <button type="button" onclick="setFilter('pump')" id="filter-pump" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
-                <i class="fa-solid fa-pump-medical text-cyan-600 w-4"></i> Pumping
-              </button>
-              <button type="button" onclick="setFilter('health')" id="filter-health" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
-                <i class="fa-solid fa-heart-pulse text-purple-600 w-4"></i> Temp / Meds
-              </button>
-              <button type="button" onclick="setFilter('walk')" id="filter-walk" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
-                <i class="fa-solid fa-person-walking text-lime-600 w-4"></i> Walk / Outdoor
-              </button>
+              <!-- Secondary Dropdown Menu -->
+              <div id="secondaryFilterDropdown" class="hidden absolute right-0 top-full mt-1.5 w-44 bg-white rounded-2xl shadow-xl border border-slate-200 p-1.5 z-40 space-y-1">
+                <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Other Activities</div>
+                <button type="button" onclick="setFilter('tummy')" id="filter-tummy" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                  <i class="fa-solid fa-dumbbell text-emerald-500 w-4"></i> Tummy Time
+                </button>
+                <button type="button" onclick="setFilter('pump')" id="filter-pump" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                  <i class="fa-solid fa-pump-medical text-cyan-600 w-4"></i> Pumping
+                </button>
+                <button type="button" onclick="setFilter('health')" id="filter-health" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                  <i class="fa-solid fa-heart-pulse text-purple-600 w-4"></i> Temp / Meds
+                </button>
+                <button type="button" onclick="setFilter('walk')" id="filter-walk" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                  <i class="fa-solid fa-person-walking text-lime-600 w-4"></i> Walk / Outdoor
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- TIME PERIOD FILTER BAR (Today, Yesterday, 7 Days, 30 Days, Custom) -->
-      <div class="bg-white rounded-2xl p-2.5 border border-slate-200 shadow-xs space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-            <i class="fa-regular fa-clock text-teal-600"></i> Period:
-          </span>
-          <span id="filteredResultsCount" class="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">
-            Showing all logs
-          </span>
-        </div>
-
-        <!-- Period Preset Pills (Horizontal Scroll on Mobile) -->
-        <div class="flex items-center gap-1 overflow-x-auto pb-0.5 custom-scroll text-xs">
-          <button type="button" onclick="setPeriodFilter('all')" id="period-all" class="px-2.5 py-1 rounded-xl bg-teal-600 text-white font-bold shrink-0 transition-colors">
-            All Time
-          </button>
-          <button type="button" onclick="setPeriodFilter('today')" id="period-today" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
-            Today
-          </button>
-          <button type="button" onclick="setPeriodFilter('yesterday')" id="period-yesterday" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
-            Yesterday
-          </button>
-          <button type="button" onclick="setPeriodFilter('7days')" id="period-7days" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
-            Last 7 Days
-          </button>
-          <button type="button" onclick="setPeriodFilter('30days')" id="period-30days" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
-            Last 30 Days
-          </button>
-          <button type="button" onclick="setPeriodFilter('custom')" id="period-custom" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors flex items-center gap-1">
-            <i class="fa-solid fa-calendar-days text-[10px]"></i> Custom
-          </button>
-        </div>
-
-        <!-- Custom Date Range Sub-Bar (Hidden unless Custom is active) -->
-        <div id="customDateRangeBox" class="hidden pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">From Date</label>
-            <input type="date" id="customStartDateInput" onchange="handleCustomDateChange()" class="w-full text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+        <!-- TIME PERIOD FILTER BAR (Today, Yesterday, 7 Days, 30 Days, Custom) -->
+        <div class="bg-white rounded-2xl p-2.5 border border-slate-200 shadow-xs space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-regular fa-clock text-teal-600"></i> Period:
+            </span>
+            <span id="filteredResultsCount" class="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">
+              Showing all logs
+            </span>
           </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">To Date</label>
-            <input type="date" id="customEndDateInput" onchange="handleCustomDateChange()" class="w-full text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+
+          <!-- Period Preset Pills -->
+          <div class="flex items-center gap-1 overflow-x-auto pb-0.5 custom-scroll text-xs">
+            <button type="button" onclick="setPeriodFilter('all')" id="period-all" class="px-2.5 py-1 rounded-xl bg-teal-600 text-white font-bold shrink-0 transition-colors">
+              All Time
+            </button>
+            <button type="button" onclick="setPeriodFilter('today')" id="period-today" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
+              Today
+            </button>
+            <button type="button" onclick="setPeriodFilter('yesterday')" id="period-yesterday" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
+              Yesterday
+            </button>
+            <button type="button" onclick="setPeriodFilter('7days')" id="period-7days" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
+              Last 7 Days
+            </button>
+            <button type="button" onclick="setPeriodFilter('30days')" id="period-30days" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors">
+              Last 30 Days
+            </button>
+            <button type="button" onclick="setPeriodFilter('custom')" id="period-custom" class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shrink-0 transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-calendar-days text-[10px]"></i> Custom
+            </button>
+          </div>
+
+          <!-- Custom Date Range Sub-Bar -->
+          <div id="customDateRangeBox" class="hidden pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">From Date</label>
+              <input type="date" id="customStartDateInput" onchange="handleCustomDateChange()" class="w-full text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">To Date</label>
+              <input type="date" id="customEndDateInput" onchange="handleCustomDateChange()" class="w-full text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+            </div>
+          </div>
+
+          <!-- Period Summary Micro-Stats Bar -->
+          <div id="periodSummaryBar" class="pt-1.5 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between flex-wrap gap-1">
+            <span id="periodSummaryFeeds">Feeds: 0</span>
+            <span>•</span>
+            <span id="periodSummaryDiapers">Diapers: 0</span>
+            <span>•</span>
+            <span id="periodSummarySleep">Sleep: 0h</span>
           </div>
         </div>
 
-        <!-- Period Summary Micro-Stats Bar -->
-        <div id="periodSummaryBar" class="pt-1.5 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between flex-wrap gap-1">
-          <span id="periodSummaryFeeds">Feeds: 0</span>
-          <span>•</span>
-          <span id="periodSummaryDiapers">Diapers: 0</span>
-          <span>•</span>
-          <span id="periodSummarySleep">Sleep: 0h</span>
+        <!-- Events List Container -->
+        <div id="timelineContainer" class="space-y-2.5">
+          <div class="p-6 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+            <i class="fa-solid fa-circle-notch fa-spin text-teal-500 text-xl mb-2"></i>
+            <p class="text-xs">Connecting baby log...</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: PEDIATRICIAN NOTES & QUESTIONS VIEW -->
+    <!-- ========================================== -->
+    <div id="viewDoctorContainer" class="space-y-4 hidden">
+      <!-- Doctor Banner Card -->
+      <div class="bg-gradient-to-r from-indigo-500 via-indigo-600 to-teal-600 text-white rounded-3xl p-4 shadow-md space-y-2 relative overflow-hidden">
+        <div class="relative z-10 flex items-start justify-between">
+          <div>
+            <span class="inline-flex items-center gap-1 text-[11px] font-bold bg-white/20 backdrop-blur-xs px-2.5 py-0.5 rounded-full text-white">
+              <i class="fa-solid fa-stethoscope text-xs"></i> Pediatrician Visit Notebook
+            </span>
+            <h2 class="text-base font-extrabold mt-1">Questions & Medical Notes</h2>
+            <p class="text-xs text-indigo-100 leading-relaxed mt-0.5">
+              Jot down questions anytime you think of them. Both parents sync live and can check them off during the visit!
+            </p>
+          </div>
+          <button type="button" onclick="openDoctorNoteModal()" class="shrink-0 px-3 py-2 bg-white text-indigo-700 hover:bg-indigo-50 rounded-2xl text-xs font-bold shadow-md active:scale-95 transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> New Note
+          </button>
         </div>
       </div>
 
-      <!-- Events List Container -->
-      <div id="timelineContainer" class="space-y-2.5">
-        <div class="p-6 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
-          <i class="fa-solid fa-circle-notch fa-spin text-teal-500 text-xl mb-2"></i>
-          <p class="text-xs">Connecting baby log...</p>
+      <!-- Quick Suggested Topics Bar -->
+      <div class="space-y-1.5">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block px-1">Quick Suggestions:</span>
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scroll text-[11px]">
+          <button type="button" onclick="quickAddDoctorTopic('Vaccine reactions & fever')" class="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold hover:border-indigo-400 hover:bg-indigo-50 shrink-0 transition-colors">
+            💉 Vaccine questions
+          </button>
+          <button type="button" onclick="quickAddDoctorTopic('Weight & growth percentile check')" class="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold hover:border-indigo-400 hover:bg-indigo-50 shrink-0 transition-colors">
+            ⚖️ Growth percentile
+          </button>
+          <button type="button" onclick="quickAddDoctorTopic('Starting solids / purees / allergens')" class="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold hover:border-indigo-400 hover:bg-indigo-50 shrink-0 transition-colors">
+            🥑 Starting solids
+          </button>
+          <button type="button" onclick="quickAddDoctorTopic('Teething symptoms & sleep regression')" class="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold hover:border-indigo-400 hover:bg-indigo-50 shrink-0 transition-colors">
+            🦷 Teething & sleep
+          </button>
+          <button type="button" onclick="quickAddDoctorTopic('Poop consistency / gas & spitting up')" class="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold hover:border-indigo-400 hover:bg-indigo-50 shrink-0 transition-colors">
+            🍼 Spit-up & reflux
+          </button>
         </div>
       </div>
-    </section>
+
+      <!-- Filter Controls: All / Unchecked (Pending) / Answered -->
+      <div class="flex items-center justify-between text-xs bg-slate-200/80 p-1 rounded-2xl font-semibold text-slate-600">
+        <button type="button" onclick="setDoctorNotesFilter('all')" id="docFilter-all" class="flex-1 py-1.5 rounded-xl bg-white text-slate-900 font-bold shadow-xs">
+          All Notes (<span id="countDocAll">0</span>)
+        </button>
+        <button type="button" onclick="setDoctorNotesFilter('pending')" id="docFilter-pending" class="flex-1 py-1.5 rounded-xl text-slate-600 hover:text-slate-900">
+          To Ask (<span id="countDocPending">0</span>)
+        </button>
+        <button type="button" onclick="setDoctorNotesFilter('answered')" id="docFilter-answered" class="flex-1 py-1.5 rounded-xl text-slate-600 hover:text-slate-900">
+          Discussed (<span id="countDocAnswered">0</span>)
+        </button>
+      </div>
+
+      <!-- Notes List Container -->
+      <div id="doctorNotesListContainer" class="space-y-3">
+        <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+          <i class="fa-solid fa-notes-medical text-indigo-400 text-2xl mb-2"></i>
+          <p class="text-xs font-bold text-slate-600">No notes written yet</p>
+          <p class="text-[11px] text-slate-400 mt-1">Tap "+ New Note" or one of the quick suggestions above to add your first question.</p>
+        </div>
+      </div>
+    </div>
+
   </main>
 
-  <!-- PERSISTENT FLOATING NURSING TIMER (Visible when nursing timer runs outside modal) -->
+  <!-- PERSISTENT FLOATING NURSING TIMER -->
   <div id="floatingNursingBanner" class="hidden fixed bottom-4 left-4 right-4 max-w-lg mx-auto bg-slate-900/95 text-white p-3 rounded-2xl shadow-2xl z-40 flex items-center justify-between backdrop-blur-md border border-slate-700">
     <div class="flex items-center gap-2.5">
       <div class="w-3 h-3 rounded-full bg-rose-500 pulse-dot"></div>
@@ -348,6 +436,89 @@
       <button type="button" onclick="openLogModal('nursing')" class="px-3.5 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-500/30 flex items-center gap-1.5 active:scale-95">
         <i class="fa-solid fa-clock-rotate-left"></i> Open & Save
       </button>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT DOCTOR QUESTION NOTE -->
+  <div id="doctorNoteModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden items-end sm:items-center justify-center p-3 sm:p-4">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scroll safe-bottom">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-base">
+            <i class="fa-solid fa-notes-medical"></i>
+          </div>
+          <div>
+            <h3 id="doctorModalTitle" class="text-base font-bold text-slate-800">Add Visit Question</h3>
+            <p class="text-[11px] text-slate-400">Syncs immediately across both parents' phones</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeDoctorNoteModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="doctorNoteForm" onsubmit="handleDoctorNoteSubmit(event)" class="space-y-3.5">
+        <input type="hidden" id="editingDoctorNoteId" value="">
+
+        <!-- Question / Topic Title -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Question or Topic to Discuss *</label>
+          <input type="text" id="docNoteQuestionInput" required placeholder="e.g. Is it normal that baby rubs her eyes often?" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Priority Flag -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Priority</label>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="cursor-pointer">
+              <input type="radio" name="docNotePriority" value="Routine" id="priorityRoutine" checked class="peer sr-only">
+              <div class="p-2 text-center rounded-xl border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 peer-checked:text-indigo-800 font-semibold transition-all">
+                📋 Routine / General
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="docNotePriority" value="High" id="priorityHigh" class="peer sr-only">
+              <div class="p-2 text-center rounded-xl border border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50 peer-checked:text-rose-700 font-bold transition-all">
+                ⚠️ Top Priority / Ask First
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Details / Context -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Extra Details / Observations (Optional)</label>
+          <textarea id="docNoteDetailsInput" rows="2" placeholder="e.g. Started about 4 days ago, usually around 5 PM before bedtime..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+
+        <!-- Pediatrician's Answer / Resolution -->
+        <div class="bg-indigo-50/60 p-3 rounded-2xl border border-indigo-100 space-y-1.5">
+          <label class="block text-xs font-bold text-indigo-950 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+              <i class="fa-solid fa-user-doctor text-indigo-600"></i> Pediatrician's Answer / Advice
+            </span>
+            <span class="text-[10px] text-indigo-700 font-normal">Can be filled during visit</span>
+          </label>
+          <textarea id="docNoteAnswerInput" rows="2" placeholder="e.g. Doctor said it's mild tiredness cue. Recommended earlier bedtime by 15 mins." class="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+
+        <!-- Discussed Toggle Status -->
+        <div class="pt-1">
+          <label class="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+            <input type="checkbox" id="docNoteAnsweredCheckbox" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+            <span class="text-xs font-bold text-slate-700">Mark as discussed with doctor</span>
+          </label>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeDoctorNoteModal()" class="w-1/3 py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200">
+            Cancel
+          </button>
+          <button type="submit" id="saveDoctorNoteBtn" class="w-2/3 py-3 rounded-2xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-check"></i> Save Note
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -416,7 +587,7 @@
             </button>
           </div>
           <p class="text-[11px] text-teal-800">
-            Formatted summary ready to print, email, or copy for doctor appointments (wet/dirty diaper counts, feeding volumes, and sleep trends).
+            Formatted clinical summary with diaper counts, feeding volumes, sleep trends, and questions to ask.
           </p>
         </div>
       </div>
@@ -459,7 +630,7 @@
           <i class="fa-brands fa-apple text-slate-700"></i> iPhone + <i class="fa-brands fa-android text-emerald-600"></i> Android Ready!
         </p>
         <p class="text-[12px] leading-relaxed text-teal-800">
-          Both parents share the same room code. Any entry logged on either phone will immediately appear on the other phone without reloading.
+          Both parents share the same room code. Any entry or doctor question logged on either phone will immediately appear on the other phone without reloading.
         </p>
         <div class="pt-1 border-t border-teal-200/60 flex items-center gap-1.5 text-emerald-800 font-semibold text-[11px]">
           <i class="fa-solid fa-shield-halved text-emerald-600"></i>
@@ -494,7 +665,7 @@
     </div>
   </div>
 
-  <!-- LOG / EDIT ENTRY MODAL -->
+  <!-- LOG / EDIT DAILY ENTRY MODAL -->
   <div id="logModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden items-end sm:items-center justify-center">
     <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scroll safe-bottom">
       
@@ -648,8 +819,8 @@
           </div>
         </div>
 
-        <!-- SLEEP FIELDS -->
-        <div id="sleepFields" class="space-y-3 hidden">
+        <!-- SLEEP FIELDS (WITH START & END TIME + AUTO DURATION CALCULATION) -->
+        <div id="sleepFields" class="space-y-3.5 hidden">
           <label class="block text-xs font-bold text-slate-700">Sleep Type</label>
           <div class="grid grid-cols-2 gap-2">
             <label class="cursor-pointer">
@@ -666,11 +837,49 @@
             </label>
           </div>
 
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Nap Duration (Minutes)</label>
-            <div class="flex items-center gap-2">
-              <input type="number" id="sleepDurationInput" min="5" max="720" value="45" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold">
-              <span class="text-xs text-slate-500 font-bold">mins</span>
+          <!-- Sleep Start & End Timestamps -->
+          <div class="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> Sleep Window
+              </span>
+              <button type="button" onclick="setSleepEndToNow()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline decoration-indigo-300 underline-offset-2">
+                Baby just woke up
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-bold text-indigo-900 mb-1 flex items-center gap-1">
+                  <i class="fa-solid fa-moon text-indigo-500 text-[10px]"></i> Fell Asleep (Start)
+                </label>
+                <input type="datetime-local" id="sleepStartInput" oninput="handleSleepTimeChange()" class="w-full bg-white border border-indigo-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold text-indigo-900 mb-1 flex items-center gap-1">
+                  <i class="fa-solid fa-sun text-amber-500 text-[10px]"></i> Woke Up (End)
+                </label>
+                <input type="datetime-local" id="sleepEndInput" oninput="handleSleepTimeChange()" class="w-full bg-white border border-indigo-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              </div>
+            </div>
+
+            <!-- Auto-Calculated Sleep Duration Card -->
+            <div class="bg-white/90 p-2.5 rounded-xl border border-indigo-200 flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Sleep Time</span>
+                <span id="calculatedSleepText" class="text-sm font-extrabold text-indigo-900 font-mono">45 mins</span>
+              </div>
+              <input type="hidden" id="sleepDurationInput" value="45">
+
+              <!-- Quick nap presets -->
+              <div class="flex items-center gap-1">
+                <button type="button" onclick="adjustSleepWindowMins(30)" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-[10px] font-bold text-indigo-700 border border-indigo-200">30m</button>
+                <button type="button" onclick="adjustSleepWindowMins(45)" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-[10px] font-bold text-indigo-700 border border-indigo-200">45m</button>
+                <button type="button" onclick="adjustSleepWindowMins(60)" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-[10px] font-bold text-indigo-700 border border-indigo-200">1h</button>
+                <button type="button" onclick="adjustSleepWindowMins(90)" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-[10px] font-bold text-indigo-700 border border-indigo-200">1.5h</button>
+                <button type="button" onclick="adjustSleepWindowMins(120)" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-[10px] font-bold text-indigo-700 border border-indigo-200">2h</button>
+              </div>
             </div>
           </div>
         </div>
@@ -739,11 +948,13 @@
 
         <!-- COMMON TIMESTAMP & NOTES -->
         <div class="space-y-2 pt-2 border-t border-slate-100">
-          <div class="flex items-center justify-between">
-            <label class="block text-xs font-bold text-slate-600">Event Time</label>
-            <span class="text-[11px] text-teal-600 font-semibold cursor-pointer" onclick="setToNow()">Set to Now</span>
+          <div id="generalTimestampBox" class="space-y-1">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-bold text-slate-600">Event Time</label>
+              <span class="text-[11px] text-teal-600 font-semibold cursor-pointer" onclick="setToNow()">Set to Now</span>
+            </div>
+            <input type="datetime-local" id="entryTimestampInput" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-700">
           </div>
-          <input type="datetime-local" id="entryTimestampInput" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-700">
 
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Notes (Optional)</label>
@@ -793,13 +1004,22 @@
     let currentUser = null;
     let currentRoomCode = 'BABYMARIAM';
     let currentParentRole = 'Mom';
+    
+    // Daily activities collection state
     let allLogs = [];
     let activeFilter = 'all';
-    let activePeriod = 'all'; // 'all', 'today', 'yesterday', '7days', '30days', 'custom'
+    let activePeriod = 'all';
     let customStartDate = '';
     let customEndDate = '';
     let unsubscribeSnapshot = null;
     let editingLogId = null;
+    let wakeTimeLocked = false;
+
+    // Pediatrician notes standalone collection state
+    let allDoctorNotes = [];
+    let doctorNotesFilter = 'all'; // 'all', 'pending', 'answered'
+    let unsubscribeDoctorSnapshot = null;
+    let activeAppTab = 'logs'; // 'logs' or 'doctor'
 
     /* Web Cryptography: AES-GCM 256-bit encryption */
     async function deriveCryptoKey(passphrase) {
@@ -870,7 +1090,28 @@
       }
     }
 
-    // Helper to format bottle volume as both ml and oz
+    // Tab Switcher Logic
+    window.switchAppTab = function(tab) {
+      activeAppTab = tab;
+      const logsView = document.getElementById('viewLogsContainer');
+      const docView = document.getElementById('viewDoctorContainer');
+      const tabNavLogs = document.getElementById('tabNavLogs');
+      const tabNavDoctor = document.getElementById('tabNavDoctor');
+
+      if (tab === 'logs') {
+        logsView.classList.remove('hidden');
+        docView.classList.add('hidden');
+        tabNavLogs.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-white text-teal-700 shadow-xs';
+        tabNavDoctor.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900';
+      } else {
+        logsView.classList.add('hidden');
+        docView.classList.remove('hidden');
+        tabNavLogs.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900';
+        tabNavDoctor.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-700 shadow-xs';
+        renderDoctorNotes();
+      }
+    };
+
     function formatBottleVolume(amount, unit = 'ml') {
       const num = parseFloat(amount);
       if (isNaN(num)) return `${amount || 60} ${unit || 'ml'}`;
@@ -885,8 +1126,87 @@
       }
     }
 
+    function formatMinutesFriendly(mins) {
+      mins = Math.max(0, parseInt(mins, 10) || 0);
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      if (h > 0 && m > 0) return `${h}h ${m}m (${mins} mins)`;
+      if (h > 0) return `${h}h (${mins} mins)`;
+      return `${m} mins`;
+    }
+
     /* -------------------------------------------------------------
-       ROBUST WALL-CLOCK NURSING TIMER WITH WAKE-LOCK & PERSISTENCE
+       SLEEP WINDOW AUTO-CALCULATOR
+       ------------------------------------------------------------- */
+    window.handleSleepTimeChange = function() {
+      const startVal = document.getElementById('sleepStartInput').value;
+      const endVal = document.getElementById('sleepEndInput').value;
+      const textEl = document.getElementById('calculatedSleepText');
+      const hiddenDuration = document.getElementById('sleepDurationInput');
+
+      if (!startVal || !endVal) {
+        textEl.innerText = '-- mins';
+        return;
+      }
+
+      const startTime = new Date(startVal).getTime();
+      const endTime = new Date(endVal).getTime();
+
+      if (isNaN(startTime) || isNaN(endTime)) {
+        textEl.innerText = '-- mins';
+        return;
+      }
+
+      const diffMs = endTime - startTime;
+      if (diffMs <= 0) {
+        textEl.innerText = '0 mins (End must be after Start)';
+        hiddenDuration.value = 0;
+        return;
+      }
+
+      const diffMins = Math.round(diffMs / 60000);
+      hiddenDuration.value = diffMins;
+      textEl.innerText = formatMinutesFriendly(diffMins);
+    };
+
+    window.adjustSleepWindowMins = function(mins) {
+      const endVal = document.getElementById('sleepEndInput').value;
+      const startVal = document.getElementById('sleepStartInput').value;
+
+      if (wakeTimeLocked || endVal) {
+        let endDt = endVal ? new Date(endVal) : new Date();
+        if (isNaN(endDt.getTime())) endDt = new Date();
+
+        const newStartDt = new Date(endDt.getTime() - mins * 60000);
+        document.getElementById('sleepStartInput').value = formatToLocalISO(newStartDt);
+        document.getElementById('sleepEndInput').value = formatToLocalISO(endDt);
+      } else {
+        let startDt = startVal ? new Date(startVal) : new Date(Date.now() - mins * 60000);
+        if (isNaN(startDt.getTime())) startDt = new Date(Date.now() - mins * 60000);
+
+        const newEndDt = new Date(startDt.getTime() + mins * 60000);
+        document.getElementById('sleepStartInput').value = formatToLocalISO(startDt);
+        document.getElementById('sleepEndInput').value = formatToLocalISO(newEndDt);
+      }
+
+      window.handleSleepTimeChange();
+    };
+
+    window.setSleepEndToNow = function() {
+      const now = new Date();
+      wakeTimeLocked = true;
+      document.getElementById('sleepEndInput').value = formatToLocalISO(now);
+      
+      const currentDuration = parseInt(document.getElementById('sleepDurationInput').value, 10) || 45;
+      const startDt = new Date(now.getTime() - currentDuration * 60000);
+      document.getElementById('sleepStartInput').value = formatToLocalISO(startDt);
+      
+      window.handleSleepTimeChange();
+      showToast("Baby woke up now! Tap presets (30m, 1h...) to shift start time.", "info");
+    };
+
+    /* -------------------------------------------------------------
+       NURSING TIMER WITH BACKGROUND PERSISTENCE & WAKE-LOCK
        ------------------------------------------------------------- */
     let timerRunning = false;
     let timerStartTime = null;
@@ -899,9 +1219,7 @@
         if ('wakeLock' in navigator) {
           wakeLock = await navigator.wakeLock.request('screen');
         }
-      } catch (err) {
-        // Safe to ignore
-      }
+      } catch (err) {}
     }
 
     function releaseWakeLock() {
@@ -1057,7 +1375,7 @@
       updateTimerDisplays();
     });
 
-    // Room and role setup
+    // Room and role configuration
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('room')) {
       currentRoomCode = urlParams.get('room').toUpperCase();
@@ -1111,16 +1429,19 @@
 
       updateHeaderDisplay();
       listenForLogs();
+      listenForDoctorNotes();
       restoreTimerState();
     }
 
+    /* -------------------------------------------------------------
+       FIRESTORE REAL-TIME LISTENERS
+       ------------------------------------------------------------- */
     function listenForLogs() {
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
 
       if (!db || !currentUser) {
-        showToast("Connected in offline demo mode", "info");
         renderAll();
         return;
       }
@@ -1159,10 +1480,357 @@
         renderAll();
       }, (error) => {
         console.error("Firestore sync error:", error);
-        showToast("Connection issue, checking local records...", "error");
       });
     }
 
+    function listenForDoctorNotes() {
+      if (unsubscribeDoctorSnapshot) {
+        unsubscribeDoctorSnapshot();
+      }
+
+      if (!db || !currentUser) {
+        renderDoctorNotes();
+        return;
+      }
+
+      const notesRef = collection(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes');
+
+      unsubscribeDoctorSnapshot = onSnapshot(notesRef, async (snapshot) => {
+        const rawDocs = [];
+        snapshot.forEach(docSnap => {
+          rawDocs.push({
+            id: docSnap.id,
+            ...docSnap.data()
+          });
+        });
+
+        const decryptedNotes = [];
+        for (const item of rawDocs) {
+          if ((item.roomCode || '').toUpperCase() === currentRoomCode.toUpperCase()) {
+            if (item.encryptedPayload) {
+              const decrypted = await decryptPayload(item.encryptedPayload, currentRoomCode);
+              if (decrypted) {
+                decryptedNotes.push({
+                  id: item.id,
+                  ...decrypted,
+                  timestamp: item.timestamp || decrypted.timestamp
+                });
+              }
+            } else {
+              decryptedNotes.push(item);
+            }
+          }
+        }
+
+        allDoctorNotes = decryptedNotes;
+        allDoctorNotes.sort((a, b) => {
+          // Sort high priority first, then newest
+          if (a.priority === 'High' && b.priority !== 'High') return -1;
+          if (b.priority === 'High' && a.priority !== 'High') return 1;
+          return new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt);
+        });
+
+        updateDoctorBadge();
+        renderDoctorNotes();
+      }, (error) => {
+        console.error("Doctor notes sync error:", error);
+      });
+    }
+
+    /* -------------------------------------------------------------
+       STANDALONE PEDIATRICIAN NOTES FUNCTIONS
+       ------------------------------------------------------------- */
+    window.openDoctorNoteModal = function(existingItem = null) {
+      const modal = document.getElementById('doctorNoteModal');
+      const title = document.getElementById('doctorModalTitle');
+      const editInput = document.getElementById('editingDoctorNoteId');
+
+      if (existingItem) {
+        title.innerText = "Edit Visit Question";
+        editInput.value = existingItem.id;
+        document.getElementById('docNoteQuestionInput').value = existingItem.question || '';
+        document.getElementById('docNoteDetailsInput').value = existingItem.details || '';
+        document.getElementById('docNoteAnswerInput').value = existingItem.answer || '';
+        document.getElementById('docNoteAnsweredCheckbox').checked = !!existingItem.isAnswered;
+
+        if (existingItem.priority === 'High') {
+          document.getElementById('priorityHigh').checked = true;
+        } else {
+          document.getElementById('priorityRoutine').checked = true;
+        }
+      } else {
+        title.innerText = "Add Visit Question";
+        editInput.value = '';
+        document.getElementById('docNoteQuestionInput').value = '';
+        document.getElementById('docNoteDetailsInput').value = '';
+        document.getElementById('docNoteAnswerInput').value = '';
+        document.getElementById('docNoteAnsweredCheckbox').checked = false;
+        document.getElementById('priorityRoutine').checked = true;
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    window.closeDoctorNoteModal = function() {
+      const modal = document.getElementById('doctorNoteModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    };
+
+    window.quickAddDoctorTopic = function(topic) {
+      openDoctorNoteModal();
+      document.getElementById('docNoteQuestionInput').value = topic;
+    };
+
+    window.handleDoctorNoteSubmit = async function(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveDoctorNoteBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+
+      const editId = document.getElementById('editingDoctorNoteId').value || null;
+      const question = document.getElementById('docNoteQuestionInput').value.trim();
+      const details = document.getElementById('docNoteDetailsInput').value.trim();
+      const answer = document.getElementById('docNoteAnswerInput').value.trim();
+      const isAnswered = document.getElementById('docNoteAnsweredCheckbox').checked;
+      const priority = document.querySelector('input[name="docNotePriority"]:checked')?.value || 'Routine';
+
+      const noteData = {
+        roomCode: currentRoomCode,
+        parentRole: currentParentRole,
+        question: question,
+        details: details,
+        answer: answer,
+        isAnswered: isAnswered,
+        priority: priority,
+        timestamp: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      if (!editId) {
+        noteData.createdAt = new Date().toISOString();
+      }
+
+      try {
+        const cipherText = await encryptPayload(noteData, currentRoomCode);
+        const docToStore = {
+          roomCode: currentRoomCode,
+          timestamp: noteData.timestamp,
+          encryptedPayload: cipherText,
+          updatedAt: new Date().toISOString()
+        };
+
+        if (editId) {
+          if (db && currentUser) {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes', editId);
+            await setDoc(docRef, docToStore, { merge: true });
+          } else {
+            const idx = allDoctorNotes.findIndex(n => n.id === editId);
+            if (idx !== -1) {
+              allDoctorNotes[idx] = { ...allDoctorNotes[idx], ...noteData, id: editId };
+              renderDoctorNotes();
+            }
+          }
+          showToast("Doctor note updated!", "success");
+        } else {
+          if (db && currentUser) {
+            const notesRef = collection(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes');
+            await addDoc(notesRef, docToStore);
+          } else {
+            noteData.id = 'doc_' + Date.now();
+            allDoctorNotes.unshift(noteData);
+            renderDoctorNotes();
+          }
+          showToast("Question saved for visit!", "success");
+        }
+
+        closeDoctorNoteModal();
+      } catch (err) {
+        console.error("Doctor note save error:", err);
+        showToast("Error saving note", "error");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save Note`;
+      }
+    };
+
+    window.toggleDoctorNoteAnswered = async function(id) {
+      const item = allDoctorNotes.find(n => n.id === id);
+      if (!item) return;
+
+      const newAnsweredStatus = !item.isAnswered;
+      item.isAnswered = newAnsweredStatus;
+      item.updatedAt = new Date().toISOString();
+
+      try {
+        const cipherText = await encryptPayload(item, currentRoomCode);
+        const docToStore = {
+          roomCode: currentRoomCode,
+          timestamp: item.timestamp || new Date().toISOString(),
+          encryptedPayload: cipherText,
+          updatedAt: new Date().toISOString()
+        };
+
+        if (db && currentUser) {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes', id);
+          await setDoc(docRef, docToStore, { merge: true });
+        } else {
+          renderDoctorNotes();
+        }
+
+        showToast(newAnsweredStatus ? "Marked as discussed" : "Marked as pending", "info");
+      } catch (err) {
+        console.error("Toggle error:", err);
+      }
+    };
+
+    window.deleteDoctorNote = async function(id) {
+      if (!id) return;
+      try {
+        if (db && currentUser) {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes', id);
+          await deleteDoc(docRef);
+        } else {
+          allDoctorNotes = allDoctorNotes.filter(n => n.id !== id);
+          renderDoctorNotes();
+        }
+        showToast("Note removed", "info");
+      } catch (err) {
+        console.error("Delete note error:", err);
+      }
+    };
+
+    window.editDoctorNote = function(id) {
+      const item = allDoctorNotes.find(n => n.id === id);
+      if (item) openDoctorNoteModal(item);
+    };
+
+    window.setDoctorNotesFilter = function(filter) {
+      doctorNotesFilter = filter;
+      ['all', 'pending', 'answered'].forEach(f => {
+        const btn = document.getElementById(`docFilter-${f}`);
+        if (btn) {
+          if (f === filter) {
+            btn.className = 'flex-1 py-1.5 rounded-xl bg-white text-slate-900 font-bold shadow-xs';
+          } else {
+            btn.className = 'flex-1 py-1.5 rounded-xl text-slate-600 hover:text-slate-900';
+          }
+        }
+      });
+      renderDoctorNotes();
+    };
+
+    function updateDoctorBadge() {
+      const pendingCount = allDoctorNotes.filter(n => !n.isAnswered).length;
+      const badge = document.getElementById('pendingDoctorNotesBadge');
+      if (badge) {
+        if (pendingCount > 0) {
+          badge.innerText = pendingCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+      const countAll = document.getElementById('countDocAll');
+      const countPending = document.getElementById('countDocPending');
+      const countAnswered = document.getElementById('countDocAnswered');
+      if (countAll) countAll.innerText = allDoctorNotes.length;
+      if (countPending) countPending.innerText = pendingCount;
+      if (countAnswered) countAnswered.innerText = allDoctorNotes.filter(n => n.isAnswered).length;
+    }
+
+    function renderDoctorNotes() {
+      updateDoctorBadge();
+      const container = document.getElementById('doctorNotesListContainer');
+      if (!container) return;
+
+      const filtered = allDoctorNotes.filter(n => {
+        if (doctorNotesFilter === 'pending') return !n.isAnswered;
+        if (doctorNotesFilter === 'answered') return !!n.isAnswered;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 space-y-2">
+            <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+              <i class="fa-solid fa-notes-medical text-lg"></i>
+            </div>
+            <p class="text-xs font-bold text-slate-600">No notes in this view</p>
+            <p class="text-[11px] text-slate-400">Tap "+ New Note" above to write down questions for the pediatrician.</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(note => {
+        const isDone = !!note.isAnswered;
+        const isHigh = note.priority === 'High';
+        const cardBg = isDone ? 'bg-slate-50/80 border-slate-200 opacity-75' : 'bg-white border-slate-200/90 shadow-xs';
+        const priorityBadge = isHigh
+          ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Priority</span>`
+          : '';
+
+        html += `
+          <div class="rounded-2xl p-3.5 border ${cardBg} space-y-2 transition-all">
+            <div class="flex items-start justify-between gap-2.5">
+              <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                <button type="button" onclick="toggleDoctorNoteAnswered('${note.id}')" class="mt-0.5 text-base text-indigo-600 hover:text-indigo-800 transition-colors" title="${isDone ? 'Mark as to ask' : 'Mark as discussed'}">
+                  <i class="${isDone ? 'fa-solid fa-circle-check text-emerald-500' : 'fa-regular fa-circle text-slate-400'}"></i>
+                </button>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    ${priorityBadge}
+                    <h4 class="text-xs font-bold text-slate-800 ${isDone ? 'line-through text-slate-400' : ''}">
+                      ${escapeHTML(note.question)}
+                    </h4>
+                  </div>
+                  ${note.details ? `<p class="text-[11px] text-slate-500 mt-1 leading-relaxed">${escapeHTML(note.details)}</p>` : ''}
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="editDoctorNote('${note.id}')" class="text-slate-400 hover:text-indigo-600 p-1.5 text-xs transition-colors" title="Edit">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button type="button" onclick="deleteDoctorNote('${note.id}')" class="text-slate-300 hover:text-rose-500 p-1.5 text-xs transition-colors" title="Delete">
+                  <i class="fa-regular fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+
+            ${note.answer ? `
+              <div class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-2.5 text-xs text-indigo-950 flex items-start gap-2">
+                <i class="fa-solid fa-user-doctor text-indigo-600 mt-0.5 text-xs shrink-0"></i>
+                <div class="min-w-0 flex-1">
+                  <span class="text-[10px] uppercase font-bold text-indigo-700 block tracking-wider">Doctor's Advice:</span>
+                  <p class="text-[11px] leading-relaxed text-indigo-900 mt-0.5">${escapeHTML(note.answer)}</p>
+                </div>
+              </div>
+            ` : `
+              <div class="pt-0.5">
+                <button type="button" onclick="editDoctorNote('${note.id}')" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                  <i class="fa-solid fa-plus text-[10px]"></i> Add doctor's advice
+                </button>
+              </div>
+            `}
+
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+              <span>Added by ${note.parentRole || 'Partner'}</span>
+              <span>${note.timestamp ? new Date(note.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    /* -------------------------------------------------------------
+       DAILY ACTIVITIES LOGGING & RENDER ENGINE
+       ------------------------------------------------------------- */
     window.handleFormSubmit = async function(e) {
       e.preventDefault();
       const saveBtn = document.getElementById('saveLogBtn');
@@ -1170,10 +1838,17 @@
       saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Encrypting...`;
 
       const type = document.getElementById('entryTypeInput').value;
-      const timestampValue = document.getElementById('entryTimestampInput').value;
-      const timestamp = timestampValue ? new Date(timestampValue).toISOString() : new Date().toISOString();
       const notes = document.getElementById('entryNotesInput').value.trim();
       const editId = document.getElementById('editingLogIdInput').value || null;
+
+      let timestamp;
+      if (type === 'sleep') {
+        const startVal = document.getElementById('sleepStartInput').value;
+        timestamp = startVal ? new Date(startVal).toISOString() : new Date().toISOString();
+      } else {
+        const timestampValue = document.getElementById('entryTimestampInput').value;
+        timestamp = timestampValue ? new Date(timestampValue).toISOString() : new Date().toISOString();
+      }
 
       const sensitiveLogData = {
         roomCode: currentRoomCode,
@@ -1204,7 +1879,14 @@
       } else if (type === 'sleep') {
         const checkedSleep = document.querySelector('input[name="sleepType"]:checked');
         sensitiveLogData.sleepType = checkedSleep ? checkedSleep.value : 'Nap';
-        sensitiveLogData.durationMins = parseInt(document.getElementById('sleepDurationInput').value, 10) || 45;
+
+        const startVal = document.getElementById('sleepStartInput').value;
+        const endVal = document.getElementById('sleepEndInput').value;
+        const durationMins = parseInt(document.getElementById('sleepDurationInput').value, 10) || 0;
+
+        sensitiveLogData.sleepStartTime = startVal ? new Date(startVal).toISOString() : timestamp;
+        sensitiveLogData.sleepEndTime = endVal ? new Date(endVal).toISOString() : new Date(new Date(timestamp).getTime() + durationMins * 60000).toISOString();
+        sensitiveLogData.durationMins = durationMins;
       } else if (type === 'tummy') {
         sensitiveLogData.durationMins = parseInt(document.getElementById('tummyDurationInput').value, 10) || 5;
       } else if (type === 'pump') {
@@ -1352,11 +2034,16 @@
 
       if (sleeps.length > 0) {
         const last = sleeps[0];
-        const sleepStartMs = new Date(last.timestamp).getTime();
-        const durationMinutes = parseInt(last.durationMins, 10) || 0;
-        const wakeTime = new Date(sleepStartMs + durationMinutes * 60 * 1000);
-        const nowMs = Date.now();
+        let wakeTime;
+        if (last.sleepEndTime) {
+          wakeTime = new Date(last.sleepEndTime);
+        } else {
+          const sleepStartMs = new Date(last.timestamp).getTime();
+          const durationMinutes = parseInt(last.durationMins, 10) || 0;
+          wakeTime = new Date(sleepStartMs + durationMinutes * 60 * 1000);
+        }
 
+        const nowMs = Date.now();
         if (wakeTime.getTime() > nowMs) {
           const remainingMins = Math.ceil((wakeTime.getTime() - nowMs) / 60000);
           sleepTimeEl.innerText = `Sleeping`;
@@ -1372,13 +2059,9 @@
       }
     }
 
-    /* -------------------------------------------------------------
-       ADVANCED FILTERING PIPELINE (PERIOD + ACTIVITY TYPE)
-       ------------------------------------------------------------- */
     function getFilteredLogs() {
       const now = new Date();
       
-      // Calculate date boundary timestamps
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
       const endOfToday = startOfToday + 86400000 - 1;
 
@@ -1389,7 +2072,6 @@
       const startOf30DaysAgo = startOfToday - (29 * 86400000);
 
       return allLogs.filter(item => {
-        // 1. Activity type filter
         let typeMatch = true;
         if (activeFilter === 'feed') typeMatch = (item.type === 'nursing' || item.type === 'bottle');
         else if (activeFilter === 'diaper') typeMatch = (item.type === 'diaper');
@@ -1400,7 +2082,6 @@
         else if (activeFilter === 'walk') typeMatch = (item.type === 'walk');
         if (!typeMatch) return false;
 
-        // 2. Period filter
         const itemTime = new Date(item.timestamp).getTime();
         if (isNaN(itemTime)) return true;
 
@@ -1423,7 +2104,7 @@
           }
           return true;
         }
-        return true; // 'all'
+        return true;
       });
     }
 
@@ -1431,19 +2112,16 @@
       const container = document.getElementById('timelineContainer');
       const filtered = getFilteredLogs();
 
-      // Update counters in Period Bar
       const countEl = document.getElementById('filteredResultsCount');
       if (countEl) {
         countEl.innerText = `${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`;
       }
 
-      // Update export modal count badges
       const expFilteredCount = document.getElementById('exportFilteredCount');
       if (expFilteredCount) expFilteredCount.innerText = filtered.length;
       const expAllCount = document.getElementById('exportAllCount');
       if (expAllCount) expAllCount.innerText = allLogs.length;
 
-      // Calculate micro-summary for filtered logs
       const feedsCount = filtered.filter(l => l.type === 'nursing' || l.type === 'bottle').length;
       const diapersCount = filtered.filter(l => l.type === 'diaper').length;
       const totalSleepMins = filtered.filter(l => l.type === 'sleep').reduce((sum, l) => sum + (parseInt(l.durationMins, 10) || 0), 0);
@@ -1543,9 +2221,23 @@
             bgBadge = 'bg-indigo-100 text-indigo-700';
             title = log.sleepType || 'Nap';
             const sleepMins = log.durationMins || 30;
-            const wakeDate = new Date(dateObj.getTime() + sleepMins * 60000);
-            const wakeStr = !isNaN(wakeDate.getTime()) ? wakeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-            details = `<span class="text-xs text-slate-500">${sleepMins} mins duration${wakeStr ? ` • woke ${wakeStr}` : ''}</span>`;
+
+            let startStr = timeDisplay;
+            let endStr = '';
+            if (log.sleepEndTime) {
+              const eDate = new Date(log.sleepEndTime);
+              if (!isNaN(eDate.getTime())) {
+                endStr = eDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              }
+            } else {
+              const wakeDate = new Date(dateObj.getTime() + sleepMins * 60000);
+              if (!isNaN(wakeDate.getTime())) {
+                endStr = wakeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              }
+            }
+
+            const rangeText = endStr ? `${startStr} – ${endStr}` : startStr;
+            details = `<span class="text-xs font-bold text-indigo-800">${rangeText}</span> <span class="text-xs text-slate-500">(${sleepMins}m duration)</span>`;
           } else if (log.type === 'tummy') {
             iconClass = 'fa-solid fa-dumbbell';
             bgBadge = 'bg-emerald-100 text-emerald-700';
@@ -1707,530 +2399,5 @@
       modal.classList.add('flex');
       
       const filtered = getFilteredLogs();
-      document.getElementById('exportFilteredCount').innerText = filtered.length;
-      document.getElementById('exportAllCount').innerText = allLogs.length;
-    };
-
-    window.closeExportModal = function() {
-      const modal = document.getElementById('exportModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    };
-
-    function getSelectedExportLogs() {
-      const isFiltered = document.getElementById('exportScopeFiltered').checked;
-      return isFiltered ? getFilteredLogs() : allLogs;
-    }
-
-    window.executeCSVDownload = function() {
-      const logsToExport = getSelectedExportLogs();
-      if (!logsToExport || logsToExport.length === 0) {
-        showToast("No logs to export in this selection", "error");
-        return;
-      }
-
-      const rows = [
-        ["Date", "Time", "Activity Type", "Category/Details", "Duration/Volume", "Logged By", "Notes"]
-      ];
-
-      logsToExport.forEach(log => {
-        const d = new Date(log.timestamp);
-        const dateStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : '';
-        const timeStr = !isNaN(d.getTime()) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
-
-        let category = '';
-        let quantity = '';
-
-        if (log.type === 'diaper') {
-          category = log.diaperContent || 'Pee';
-          quantity = log.detail || '';
-        } else if (log.type === 'nursing') {
-          category = `${log.nursingSide || 'Left'} Breast`;
-          quantity = `${log.durationMins || 15} mins`;
-        } else if (log.type === 'bottle') {
-          category = log.bottleContent || 'Milk';
-          quantity = formatBottleVolume(log.amount, log.unit);
-        } else if (log.type === 'sleep') {
-          category = log.sleepType || 'Nap';
-          quantity = `${log.durationMins || 45} mins`;
-        } else if (log.type === 'tummy') {
-          category = 'Tummy Time';
-          quantity = `${log.durationMins || 5} mins`;
-        } else if (log.type === 'pump') {
-          category = 'Pumping';
-          quantity = `${log.amount || 80} ml`;
-        } else if (log.type === 'health') {
-          category = 'Health/Meds';
-          quantity = log.detail || '';
-        } else if (log.type === 'walk') {
-          category = `Walk (${log.walkState || 'Asleep'})`;
-          quantity = `${log.durationMins || 30} mins` + (log.location ? ` - ${log.location}` : '');
-        }
-
-        const safeNotes = (log.notes || '').replace(/"/g, '""');
-        const safeCategory = (category || '').replace(/"/g, '""');
-        const safeQuantity = (quantity || '').replace(/"/g, '""');
-
-        rows.push([
-          `"${dateStr}"`,
-          `"${timeStr}"`,
-          `"${log.type}"`,
-          `"${safeCategory}"`,
-          `"${safeQuantity}"`,
-          `"${log.parentRole || 'Partner'}"`,
-          `"${safeNotes}"`
-        ]);
-      });
-
-      const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      const nowStr = new Date().toISOString().slice(0, 10);
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `BabyNest_Export_${currentRoomCode}_${nowStr}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      showToast(`Exported ${logsToExport.length} entries to CSV!`, "success");
-    };
-
-    window.generatePediatricianReport = function() {
-      const logs = getSelectedExportLogs();
-      const previewBox = document.getElementById('reportPreviewBox');
-      const printArea = document.getElementById('printArea');
-
-      if (!logs || logs.length === 0) {
-        showToast("No entries available for report", "error");
-        return;
-      }
-
-      previewBox.classList.remove('hidden');
-
-      // Tally totals
-      let totalDiapers = 0;
-      let peeDiapers = 0;
-      let poopDiapers = 0;
-      let bothDiapers = 0;
-      let totalBottleMl = 0;
-      let nursingSessions = 0;
-      let nursingMinutes = 0;
-      let totalSleepMinutes = 0;
-      let sleepSessions = 0;
-      const medsList = [];
-
-      logs.forEach(l => {
-        if (l.type === 'diaper') {
-          totalDiapers++;
-          if (l.diaperContent === 'Pee') peeDiapers++;
-          else if (l.diaperContent === 'Poop') poopDiapers++;
-          else if (l.diaperContent === 'Both') { bothDiapers++; peeDiapers++; poopDiapers++; }
-        } else if (l.type === 'bottle') {
-          const ml = l.unit === 'oz' ? Math.round((parseFloat(l.amount) || 0) * 30) : (parseFloat(l.amount) || 0);
-          totalBottleMl += ml;
-        } else if (l.type === 'nursing') {
-          nursingSessions++;
-          nursingMinutes += (parseInt(l.durationMins, 10) || 0);
-        } else if (l.type === 'sleep') {
-          sleepSessions++;
-          totalSleepMinutes += (parseInt(l.durationMins, 10) || 0);
-        } else if (l.type === 'health' && l.detail) {
-          const time = new Date(l.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-          medsList.push(`• [${time}] ${l.detail}`);
-        }
-      });
-
-      const totalSleepHours = (totalSleepMinutes / 60).toFixed(1);
-      const totalBottleOz = (totalBottleMl / 30).toFixed(1);
-
-      const generatedDate = new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-
-      let reportText = `======================================\n`;
-      reportText += `       BABYNEST PEDIATRICIAN REPORT   \n`;
-      reportText += `======================================\n`;
-      reportText += `Family Room: ${currentRoomCode}\n`;
-      reportText += `Generated on: ${generatedDate}\n`;
-      reportText += `Scope: ${logs.length} logged events in range\n\n`;
-
-      reportText += `--------------------------------------\n`;
-      reportText += `1. DIAPER SUMMARY\n`;
-      reportText += `--------------------------------------\n`;
-      reportText += `Total Diapers: ${totalDiapers}\n`;
-      reportText += `- Wet Diapers (Pee): ${peeDiapers}\n`;
-      reportText += `- Dirty Diapers (Poop): ${poopDiapers} (Both: ${bothDiapers})\n\n`;
-
-      reportText += `--------------------------------------\n`;
-      reportText += `2. FEEDING SUMMARY\n`;
-      reportText += `--------------------------------------\n`;
-      reportText += `Bottle Volume: ${totalBottleMl} ml (~${totalBottleOz} oz)\n`;
-      reportText += `Nursing Feeds: ${nursingSessions} sessions (${nursingMinutes} total mins)\n\n`;
-
-      reportText += `--------------------------------------\n`;
-      reportText += `3. SLEEP SUMMARY\n`;
-      reportText += `--------------------------------------\n`;
-      reportText += `Total Sleep: ${totalSleepHours} hours across ${sleepSessions} sessions\n\n`;
-
-      if (medsList.length > 0) {
-        reportText += `--------------------------------------\n`;
-        reportText += `4. MEDICATIONS & HEALTH LOGS\n`;
-        reportText += `--------------------------------------\n`;
-        reportText += medsList.join('\n') + `\n\n`;
-      }
-
-      reportText += `======================================\n`;
-      reportText += `Prepared for Pediatric Check-up\n`;
-
-      printArea.innerText = reportText;
-    };
-
-    window.copyReportToClipboard = function() {
-      const text = document.getElementById('printArea').innerText;
-      if (!text) return;
-      navigator.clipboard.writeText(text).then(() => {
-        showToast("Report copied to clipboard!", "success");
-      }).catch(() => {
-        showToast("Could not copy report", "error");
-      });
-    };
-
-    window.printPediatricianReport = function() {
-      window.print();
-    };
-
-    /* -------------------------------------------------------------
-       MODAL HANDLING & HELPERS
-       ------------------------------------------------------------- */
-    window.openLogModal = function(type, existingItem = null) {
-      editingLogId = existingItem ? existingItem.id : null;
-      document.getElementById('editingLogIdInput').value = editingLogId || '';
-      document.getElementById('entryTypeInput').value = type;
-
-      const saveBtn = document.getElementById('saveLogBtn');
-      if (existingItem) {
-        saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Update & Sync`;
-      } else {
-        saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save & Sync`;
-      }
-
-      if (existingItem && existingItem.timestamp) {
-        document.getElementById('entryTimestampInput').value = formatToLocalISO(new Date(existingItem.timestamp));
-      } else {
-        document.getElementById('entryTimestampInput').value = getLocalISOString();
-      }
-
-      document.getElementById('entryNotesInput').value = (existingItem && existingItem.notes) ? existingItem.notes : '';
-
-      const fieldGroups = ['diaperFields', 'nursingFields', 'bottleFields', 'sleepFields', 'tummyFields', 'pumpFields', 'healthFields', 'walkFields'];
-      fieldGroups.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
-      });
-
-      const modalIconWrap = document.getElementById('modalIconWrap');
-      const modalIcon = document.getElementById('modalIcon');
-      const modalTitle = document.getElementById('modalTitle');
-      const modalSubtitle = document.getElementById('modalSubtitle');
-      const prefix = existingItem ? 'Edit ' : 'Log ';
-
-      if (type === 'diaper') {
-        document.getElementById('diaperFields').classList.remove('hidden');
-        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-amber-500';
-        modalIcon.className = 'fa-solid fa-baby-carriage';
-        modalTitle.innerText = prefix + 'Diaper Change';
-        modalSubtitle.innerText = 'Track wet or dirty diaper for pediatrician';
-
-        const content = existingItem ? (existingItem.diaperContent || 'Pee') : 'Pee';
-        document.getElementById('diaperRadioPee').checked = (content === 'Pee');
-        document.getElementById('diaperRadioPoop').checked = (content === 'Poop');
-        document.getElementById('diaperRadioBoth').checked = (content === 'Both');
-        document.getElementById('poopDetailInput').value = existingItem ? (existingItem.detail || '') : '';
-      } else if (type === 'nursing') {
-        document.getElementById('nursingFields').classList.remove('hidden');
-        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-rose-500';
-        modalIcon.className = 'fa-solid fa-person-breastfeeding';
-        modalTitle.innerText = prefix + 'Breastfeeding';
-        modalSubtitle.innerText = 'Keep track of side and nursing duration';
-
-        const side = existingItem ? (existingItem.nursingSide || 'Left') : 'Left';
-        document.getElementById('nursingSideLeft').checked = (side === 'Left');
-        document.getElementById('nursingSideRight').checked = (side === 'Right');
-        document.getElementById('nursingSideBoth').checked = (side === 'Both');
-        
-        updateTimerDisplays();
-        updateTimerButtonUI();
-
-        if (existingItem) {
-          document.getElementById('nursingDurationInput').value = existingItem.durationMins || 15;
-        }
-      } else if (type === 'bottle') {
-        document.getElementById('bottleFields').classList.remove('hidden');
-        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-teal-600';
-        modalIcon.className = 'fa-solid fa-bottle-water';
-        modalTitle.innerText = prefix + 'Bottle Feed';
-        modalSubtitle.innerText = 'Formula or expressed breastmilk';
-
-        const bContent = existingItem ? (existingItem.bottleContent || 'Breast Milk') : 'Breast Milk';
-        document.getElementById('bottleMilk').checked = (bContent === 'Breast Milk');
-        document.getElementById('bottleFormula').checked = (bContent === 'Formula');
-        document.getElementById('bottleAmountInput').value = existingItem ? (existingItem.amount || 60) : 60;
-        document.getElementById('bottleUnitSelect').value = existingItem ? (existingItem.unit || 'ml') : 'ml';
-      } else if (type === 'sleep') {
-        document.getElementById('sleepFields').classList.remove('hidden');
-        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-indigo-600';
-        modalIcon.className = 'fa-solid fa-bed';
-        modalTitle.innerText = prefix + 'Sleep';
-        modalSubtitle.innerText = 'Record daytime naps or overnight sleep';
-
-        let sleepTypeVal;
-        if (existingItem) {
-          sleepTypeVal = existingItem.sleepType || 'Nap';
-        } else {
-          const currentHour = new Date().getHours();
-          sleepTypeVal = (currentHour >= 22 || currentHour < 8) ? 'Night Sleep' : 'Nap';
-        }
-
-        document.getElementById('sleepTypeNap').checked = (sleepTypeVal === 'Nap');
-        document.getElementById('sleepTypeNight').checked = (sleepTypeVal === 'Night Sleep');
-        document.getElementById('sleepDurationInput').value = existingItem ? (existingItem.durationMins || 45) : 45;
-      } else if (type === 'tummy') {
-        document.getElementById('tummyFields').classList.remove('hidden');
-        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-emerald-600';
-        modalIcon.className = 'fa-solid fa-dumbbell';
-        modalTitle.innerText = prefix + 'Tummy Time';
-        modalSubtitle.innerText = 'Great for neck strength & development';
-        document.getElementById('tummyDurationInput').value = existingItem ? (existingItem.durationMins || 5) : 5;
-      } else if (type === 'pump') {
-        document.getElementById('pumpFields').classList.remove('hidden');
-        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-cyan-600';
-        modalIcon.className = 'fa-solid fa-pump-medical';
-        modalTitle.innerText = prefix + 'Pumping';
-        modalSubtitle.innerText = 'Record expressed milk volume';
-        document.getElementById('pumpAmountInput').value = existingItem ? (existingItem.amount || 80) : 80;
-      } else if (type === 'health') {
-        document.getElementById('healthFields').classList.remove('hidden');
-        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-purple-600';
-        modalIcon.className = 'fa-solid fa-heart-pulse';
-        modalTitle.innerText = prefix + 'Health / Meds';
-        modalSubtitle.innerText = 'Temperature, vitamin drops, or medication';
-        document.getElementById('healthDetailInput').value = existingItem ? (existingItem.detail || '') : '';
-      } else if (type === 'walk') {
-        document.getElementById('walkFields').classList.remove('hidden');
-        modalIconWrap.className = 'w-9 h-9 rounded-2xl flex items-center justify-center text-white text-base bg-lime-600';
-        modalIcon.className = 'fa-solid fa-person-walking';
-        modalTitle.innerText = prefix + 'Walk / Outdoors';
-        modalSubtitle.innerText = 'Track fresh air, stroller naps & duration';
-
-        const state = existingItem ? (existingItem.walkState || 'Asleep') : 'Asleep';
-        document.getElementById('walkStateAsleep').checked = (state === 'Asleep');
-        document.getElementById('walkStateAwake').checked = (state === 'Awake');
-        document.getElementById('walkDurationInput').value = existingItem ? (existingItem.durationMins || 30) : 30;
-        document.getElementById('walkLocationInput').value = existingItem ? (existingItem.location || '') : '';
-      }
-
-      const modal = document.getElementById('logModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      
-      updateTimerDisplays();
-    };
-
-    window.closeLogModal = function() {
-      editingLogId = null;
-      document.getElementById('editingLogIdInput').value = '';
-      const modal = document.getElementById('logModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      updateTimerDisplays();
-    };
-
-    window.openSyncModal = function() {
-      document.getElementById('roomCodeInput').value = currentRoomCode;
-      highlightRoleButton();
-      const modal = document.getElementById('syncModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    };
-
-    window.closeSyncModal = function() {
-      const modal = document.getElementById('syncModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    };
-
-    window.selectParentRole = function(role) {
-      currentParentRole = role;
-      localStorage.setItem('babynest_role', role);
-      sessionStorage.setItem('babynest_role', role);
-      highlightRoleButton();
-      updateHeaderDisplay();
-      showToast(`Switched user to ${role}`, "info");
-    };
-
-    window.applyRoomCode = function() {
-      const input = document.getElementById('roomCodeInput');
-      const newRoom = input.value.trim().toUpperCase() || 'BABYMARIAM';
-      currentRoomCode = newRoom;
-      localStorage.setItem('babynest_room', newRoom);
-      sessionStorage.setItem('babynest_room', newRoom);
-
-      try {
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set('room', newRoom);
-        window.history.replaceState({}, '', newUrl.toString());
-      } catch (e) {
-        console.warn("Could not update URL", e);
-      }
-
-      updateHeaderDisplay();
-      listenForLogs();
-      closeSyncModal();
-      showToast(`Synced to Room: ${newRoom}`, "success");
-    };
-
-    window.copyShareLink = function() {
-      const url = `${window.location.origin}${window.location.pathname}?room=${currentRoomCode}`;
-      const tempInput = document.createElement("input");
-      tempInput.value = url;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand("copy");
-      document.body.removeChild(tempInput);
-      showToast("Invite link copied to clipboard!", "success");
-    };
-
-    function highlightRoleButton() {
-      document.querySelectorAll('.role-btn').forEach(btn => {
-        if (btn.dataset.role === currentParentRole) {
-          btn.className = 'role-btn border-2 border-teal-500 bg-teal-50 py-2 rounded-xl text-xs font-bold text-teal-700 text-center';
-        } else {
-          btn.className = 'role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100';
-        }
-      });
-    }
-
-    function updateHeaderDisplay() {
-      document.getElementById('displayRoomCode').innerText = currentRoomCode;
-      document.getElementById('currentParentLabel').innerText = currentParentRole;
-    }
-
-    document.getElementById('openSyncModalBtn').addEventListener('click', openSyncModal);
-    document.getElementById('toggleParentBtn').addEventListener('click', () => {
-      const nextRole = currentParentRole === 'Mom' ? 'Dad' : (currentParentRole === 'Dad' ? 'Partner' : 'Mom');
-      selectParentRole(nextRole);
-    });
-
-    window.setPoopTag = function(val) {
-      document.getElementById('poopDetailInput').value = val;
-      showToast(`Selected: ${val}`, "info");
-    };
-
-    window.setBottleAmount = function(amt) {
-      document.getElementById('bottleAmountInput').value = amt;
-    };
-
-    window.setToNow = function() {
-      document.getElementById('entryTimestampInput').value = getLocalISOString();
-    };
-
-    window.toggleMoreFilterMenu = function(e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      const menu = document.getElementById('secondaryFilterDropdown');
-      const icon = document.getElementById('moreFilterIcon');
-      menu.classList.toggle('hidden');
-      if (icon) {
-        icon.classList.toggle('rotate-180');
-      }
-    };
-
-    window.closeMoreFilterMenu = function() {
-      const menu = document.getElementById('secondaryFilterDropdown');
-      const icon = document.getElementById('moreFilterIcon');
-      if (menu && !menu.classList.contains('hidden')) {
-        menu.classList.add('hidden');
-      }
-      if (icon) {
-        icon.classList.remove('rotate-180');
-      }
-    };
-
-    document.addEventListener('click', (e) => {
-      const dropdown = document.getElementById('secondaryFilterDropdown');
-      const btn = document.getElementById('filter-more-btn');
-      if (dropdown && !dropdown.contains(e.target) && btn && !btn.contains(e.target)) {
-        window.closeMoreFilterMenu();
-      }
-    });
-
-    function getLocalISOString() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      return now.toISOString().slice(0, 16);
-    }
-
-    function formatToLocalISO(date) {
-      if (isNaN(date.getTime())) return getLocalISOString();
-      const local = new Date(date);
-      local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
-      return local.toISOString().slice(0, 16);
-    }
-
-    // Precise relative time calculation
-    function formatRelativeTime(date) {
-      if (!date || isNaN(date.getTime())) return '--';
-      const now = new Date();
-      const diffMs = now - date;
-      if (diffMs < 0) return 'Just now';
-      const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      const diffHours = Math.floor(diffMs / 3600000);
-      const remainingMins = Math.floor((diffMs % 3600000) / 60000);
-      if (diffHours < 24) return `${diffHours}h ${remainingMins}m ago`;
-      const diffDays = Math.floor(diffMs / 86400000);
-      return `${diffDays}d ago`;
-    }
-
-    function escapeHTML(str) {
-      if (!str) return '';
-      return String(str).replace(/[&<>'"]/g, 
-        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
-    }
-
-    let toastTimeout = null;
-    function showToast(msg, type = "success") {
-      const toast = document.getElementById('customToast');
-      const toastMsg = document.getElementById('toastMsg');
-      const toastIcon = document.getElementById('toastIcon');
-
-      toastMsg.innerText = msg;
-      if (type === "success") {
-        toastIcon.className = "fa-solid fa-circle-check text-teal-400";
-      } else if (type === "info") {
-        toastIcon.className = "fa-solid fa-circle-info text-cyan-400";
-      } else {
-        toastIcon.className = "fa-solid fa-triangle-exclamation text-rose-400";
-      }
-
-      toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
-      toast.classList.add('opacity-100', 'translate-y-0');
-
-      clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => {
-        toast.classList.remove('opacity-100', 'translate-y-0');
-        toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-4');
-      }, 2500);
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      initFirebase();
-      setInterval(() => {
-        renderMetrics();
-      }, 60000);
-    });
-  </script>
-</body>
-</html>
+      document.getElementById('exportFilteredCount
 ```
