@@ -1540,6 +1540,27 @@
     /* -------------------------------------------------------------
        STANDALONE PEDIATRICIAN NOTES FUNCTIONS
        ------------------------------------------------------------- */
+    function saveDoctorNotesLocally() {
+      try {
+        localStorage.setItem(`babynest_doc_notes_${currentRoomCode}`, JSON.stringify(allDoctorNotes));
+      } catch (e) {
+        console.warn("Could not save doctor notes locally", e);
+      }
+    }
+
+    function loadDoctorNotesLocally() {
+      try {
+        const raw = localStorage.getItem(`babynest_doc_notes_${currentRoomCode}`);
+        if (raw) {
+          allDoctorNotes = JSON.parse(raw);
+          updateDoctorBadge();
+          renderDoctorNotes();
+        }
+      } catch (e) {
+        console.warn("Could not load local doctor notes", e);
+      }
+    }
+
     window.openDoctorNoteModal = function(existingItem = null) {
       const modal = document.getElementById('doctorNoteModal');
       const title = document.getElementById('doctorModalTitle');
@@ -1612,6 +1633,8 @@
         noteData.createdAt = new Date().toISOString();
       }
 
+      let savedToFirestore = false;
+
       try {
         const cipherText = await encryptPayload(noteData, currentRoomCode);
         const docToStore = {
@@ -1623,32 +1646,57 @@
 
         if (editId) {
           if (db && currentUser) {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes', editId);
-            await setDoc(docRef, docToStore, { merge: true });
-          } else {
-            const idx = allDoctorNotes.findIndex(n => n.id === editId);
-            if (idx !== -1) {
-              allDoctorNotes[idx] = { ...allDoctorNotes[idx], ...noteData, id: editId };
-              renderDoctorNotes();
+            try {
+              const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes', editId);
+              await setDoc(docRef, docToStore, { merge: true });
+              savedToFirestore = true;
+            } catch (fireErr) {
+              console.warn("Firestore save failed, saving note locally:", fireErr);
             }
           }
-          showToast("Doctor note updated!", "success");
+          const idx = allDoctorNotes.findIndex(n => n.id === editId);
+          if (idx !== -1) {
+            allDoctorNotes[idx] = { ...allDoctorNotes[idx], ...noteData, id: editId };
+          }
+          saveDoctorNotesLocally();
+          renderDoctorNotes();
+          showToast(savedToFirestore ? "Doctor note updated!" : "Note updated (saved to device)!", "success");
         } else {
           if (db && currentUser) {
-            const notesRef = collection(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes');
-            await addDoc(notesRef, docToStore);
+            try {
+              const notesRef = collection(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes');
+              const newDoc = await addDoc(notesRef, docToStore);
+              noteData.id = newDoc.id;
+              savedToFirestore = true;
+            } catch (fireErr) {
+              console.warn("Firestore save failed, saving note locally:", fireErr);
+              noteData.id = 'doc_' + Date.now();
+            }
           } else {
             noteData.id = 'doc_' + Date.now();
-            allDoctorNotes.unshift(noteData);
-            renderDoctorNotes();
           }
-          showToast("Question saved for visit!", "success");
+
+          allDoctorNotes.unshift(noteData);
+          saveDoctorNotesLocally();
+          renderDoctorNotes();
+          showToast(savedToFirestore ? "Question saved for visit!" : "Question saved to device!", "success");
         }
 
         closeDoctorNoteModal();
       } catch (err) {
-        console.error("Doctor note save error:", err);
-        showToast("Error saving note", "error");
+        console.error("Doctor note handling error:", err);
+        // Fallback save to ensure parents never lose notes
+        noteData.id = editId || ('doc_' + Date.now());
+        const idx = allDoctorNotes.findIndex(n => n.id === noteData.id);
+        if (idx !== -1) {
+          allDoctorNotes[idx] = { ...allDoctorNotes[idx], ...noteData };
+        } else {
+          allDoctorNotes.unshift(noteData);
+        }
+        saveDoctorNotesLocally();
+        renderDoctorNotes();
+        closeDoctorNoteModal();
+        showToast("Note saved on this device!", "info");
       } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save Note`;
@@ -1663,6 +1711,9 @@
       item.isAnswered = newAnsweredStatus;
       item.updatedAt = new Date().toISOString();
 
+      saveDoctorNotesLocally();
+      renderDoctorNotes();
+
       try {
         const cipherText = await encryptPayload(item, currentRoomCode);
         const docToStore = {
@@ -1675,29 +1726,28 @@
         if (db && currentUser) {
           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes', id);
           await setDoc(docRef, docToStore, { merge: true });
-        } else {
-          renderDoctorNotes();
         }
 
         showToast(newAnsweredStatus ? "Marked as discussed" : "Marked as pending", "info");
       } catch (err) {
-        console.error("Toggle error:", err);
+        console.warn("Cloud status update failed, kept locally:", err);
       }
     };
 
     window.deleteDoctorNote = async function(id) {
       if (!id) return;
+      allDoctorNotes = allDoctorNotes.filter(n => n.id !== id);
+      saveDoctorNotesLocally();
+      renderDoctorNotes();
+
       try {
         if (db && currentUser) {
           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_doctor_notes', id);
           await deleteDoc(docRef);
-        } else {
-          allDoctorNotes = allDoctorNotes.filter(n => n.id !== id);
-          renderDoctorNotes();
         }
         showToast("Note removed", "info");
       } catch (err) {
-        console.error("Delete note error:", err);
+        console.warn("Delete cloud error:", err);
       }
     };
 
@@ -2819,29 +2869,10 @@
 
       updateHeaderDisplay();
       listenForLogs();
+      loadDoctorNotesLocally();
       listenForDoctorNotes();
-      closeSyncModal();
-      showToast(`Synced to Room: ${newRoom}`, "success");
-    };
-
-    window.copyShareLink = function() {
-      const url = `${window.location.origin}${window.location.pathname}?room=${currentRoomCode}`;
-      const tempInput = document.createElement("input");
-      tempInput.value = url;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand("copy");
-      document.body.removeChild(tempInput);
-      showToast("Invite link copied to clipboard!", "success");
-    };
-
-    function highlightRoleButton() {
-      document.querySelectorAll('.role-btn').forEach(btn => {
-        if (btn.dataset.role === currentParentRole) {
-          btn.className = 'role-btn border-2 border-teal-500 bg-teal-50 py-2 rounded-xl text-xs font-bold text-teal-700 text-center';
-        } else {
-          btn.className = 'role-btn border border-slate-300 py-2 rounded-xl text-xs font-bold text-slate-700 text-center hover:bg-slate-100';
-        }
+      restoreTimerState();
+    }
       });
     }
 
