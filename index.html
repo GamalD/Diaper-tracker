@@ -996,7 +996,7 @@
           </div>
         </div>
 
-        <!-- SLEEP FIELDS (WITH START & END TIME + AUTO DURATION CALCULATION) -->
+        <!-- SLEEP FIELDS (WITH INTERACTIVE WAKE-UP CHECKBOX + BIDIRECTIONAL TIME CALCULATION) -->
         <div id="sleepFields" class="space-y-3.5 hidden">
           <label class="block text-xs font-bold text-slate-700">Sleep Type</label>
           <div class="grid grid-cols-2 gap-2">
@@ -1020,9 +1020,12 @@
               <span class="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
                 <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> Sleep Window
               </span>
-              <button type="button" onclick="setSleepEndToNow()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline decoration-indigo-300 underline-offset-2">
-                Baby just woke up
-              </button>
+
+              <!-- Baby Just Woke Up Tickbox -->
+              <label class="inline-flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1 rounded-xl border border-indigo-200 hover:border-indigo-400 transition-colors shadow-2xs">
+                <input type="checkbox" id="sleepJustWokeCheckbox" onchange="handleJustWokeToggle(this.checked)" class="w-3.5 h-3.5 text-indigo-600 rounded focus:ring-indigo-500 accent-indigo-600">
+                <span class="text-[11px] font-bold text-indigo-900 select-none">Baby just woke up</span>
+              </label>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -1030,26 +1033,29 @@
                 <label class="block text-[11px] font-bold text-indigo-900 mb-1 flex items-center gap-1">
                   <i class="fa-solid fa-moon text-indigo-500 text-[10px]"></i> Fell Asleep (Start)
                 </label>
-                <input type="datetime-local" id="sleepStartInput" oninput="handleSleepTimeChange()" class="w-full bg-white border border-indigo-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                <input type="datetime-local" id="sleepStartInput" oninput="handleManualSleepInput('start')" class="w-full bg-white border border-indigo-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400">
               </div>
 
               <div>
-                <label class="block text-[11px] font-bold text-indigo-900 mb-1 flex items-center gap-1">
-                  <i class="fa-solid fa-sun text-amber-500 text-[10px]"></i> Woke Up (End)
+                <label class="block text-[11px] font-bold text-indigo-900 mb-1 flex items-center justify-between">
+                  <span class="flex items-center gap-1">
+                    <i class="fa-solid fa-sun text-amber-500 text-[10px]"></i> Woke Up (End)
+                  </span>
+                  <span id="wakeLockNotice" class="hidden text-[10px] text-indigo-600 font-bold bg-indigo-100 px-1.5 rounded">Locked: Now</span>
                 </label>
-                <input type="datetime-local" id="sleepEndInput" oninput="handleSleepTimeChange()" class="w-full bg-white border border-indigo-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                <input type="datetime-local" id="sleepEndInput" oninput="handleManualSleepInput('end')" class="w-full bg-white border border-indigo-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all">
               </div>
             </div>
 
             <!-- Auto-Calculated Sleep Duration Card -->
-            <div class="bg-white/90 p-2.5 rounded-xl border border-indigo-200 flex items-center justify-between">
+            <div class="bg-white/90 p-2.5 rounded-xl border border-indigo-200 flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Sleep Time</span>
                 <span id="calculatedSleepText" class="text-sm font-extrabold text-indigo-900 font-mono">45 mins</span>
               </div>
               <input type="hidden" id="sleepDurationInput" value="45">
 
-              <!-- Quick nap presets -->
+              <!-- Quick nap presets (calculates backward if woke-up box is ticked, forward otherwise) -->
               <div class="flex items-center gap-1">
                 <button type="button" onclick="adjustSleepWindowMins(30)" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-[10px] font-bold text-indigo-700 border border-indigo-200">30m</button>
                 <button type="button" onclick="adjustSleepWindowMins(45)" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-[10px] font-bold text-indigo-700 border border-indigo-200">45m</button>
@@ -1190,51 +1196,44 @@
     let customEndDate = '';
     let unsubscribeSnapshot = null;
     let editingLogId = null;
-    let wakeTimeLocked = false;
 
     // Pediatrician notes standalone collection state
     let allDoctorNotes = [];
-    let doctorNotesFilter = 'all'; // 'all', 'pending', 'answered'
+    let doctorNotesFilter = 'all';
     let unsubscribeDoctorSnapshot = null;
-    let activeAppTab = 'logs'; // 'logs', 'doctor', 'milestones'
+    let activeAppTab = 'logs';
 
     // Milestones state & clinical reference dataset
     let babyBirthDate = null;
-    let achievedMilestones = {}; // { milestoneId: { achievedAt: '2026-11-02', by: 'Mom' } }
+    let achievedMilestones = {};
     let activeMilestoneBand = 'all';
 
     const MILESTONES_DATA = [
-      // Weeks 0–4: Newborn Stage
       { id: 'm_nb_1', band: '0-4w', bandLabel: 'Weeks 0–4 (Newborn)', title: 'Startle & Rooting Reflex', desc: 'Turns head toward cheek touch and startles at loud sounds', domain: 'Motor & Reflex' },
       { id: 'm_nb_2', band: '0-4w', bandLabel: 'Weeks 0–4 (Newborn)', title: 'Close Visual Focus (8–12")', desc: 'Gazes intently at parents faces held close during feeds', domain: 'Vision & Cognitive' },
       { id: 'm_nb_3', band: '0-4w', bandLabel: 'Weeks 0–4 (Newborn)', title: 'Brief Head Turn on Tummy', desc: 'Can briefly lift and switch head side while on chest or mat', domain: 'Motor' },
       { id: 'm_nb_4', band: '0-4w', bandLabel: 'Weeks 0–4 (Newborn)', title: 'Throaty Sounds & Calming', desc: 'Calms to parent voice and makes soft grunts or sighs', domain: 'Social & Speech' },
 
-      // Weeks 6–8: 2 Months Stage
       { id: 'm_2m_1', band: '6-8w', bandLabel: 'Weeks 6–8 (2 Months)', title: 'First Social Smile', desc: 'Smiles back at you when you speak, smile, or make gentle sounds', domain: 'Social & Emotional' },
       { id: 'm_2m_2', band: '6-8w', bandLabel: 'Weeks 6–8 (2 Months)', title: 'Cooing Sounds ("Ooh", "Aah")', desc: 'Makes happy vowel-like noises other than crying', domain: 'Speech & Language' },
       { id: 'm_2m_3', band: '6-8w', bandLabel: 'Weeks 6–8 (2 Months)', title: 'Head Lifted on Tummy (45°)', desc: 'Pushes up and holds head steady off the floor during tummy time', domain: 'Motor' },
       { id: 'm_2m_4', band: '6-8w', bandLabel: 'Weeks 6–8 (2 Months)', title: 'Hands Open Briefly', desc: 'Fists uncurl more frequently; fingers grasp objects placed in palm', domain: 'Fine Motor' },
 
-      // Weeks 12–16: 4 Months Stage
       { id: 'm_4m_1', band: '12-16w', bandLabel: 'Weeks 12–16 (4 Months)', title: 'Chuckling & Laughing', desc: 'Makes funny little chuckles and laughs when you tickle or play', domain: 'Social & Emotional' },
       { id: 'm_4m_2', band: '12-16w', bandLabel: 'Weeks 12–16 (4 Months)', title: 'Pushes Up on Forearms', desc: 'Props chest off ground on elbows with steady, firm head control', domain: 'Gross Motor' },
       { id: 'm_4m_3', band: '12-16w', bandLabel: 'Weeks 12–16 (4 Months)', title: 'Hands to Mouth & Reaching', desc: 'Discovers hands, brings toys to mouth, and swipes at hanging toys', domain: 'Cognitive & Motor' },
       { id: 'm_4m_4', band: '12-16w', bandLabel: 'Weeks 12–16 (4 Months)', title: 'Turns Toward Your Voice', desc: 'Actively pivots head when hearing mommy or daddy enter the room', domain: 'Hearing & Language' },
 
-      // Weeks 20–26: 6 Months Stage
       { id: 'm_6m_1', band: '20-26w', bandLabel: 'Weeks 20–26 (6 Months)', title: 'Rolls Tummy to Back', desc: 'Can flip over from belly to back (and often back to belly)', domain: 'Gross Motor' },
       { id: 'm_6m_2', band: '20-26w', bandLabel: 'Weeks 20–26 (6 Months)', title: 'Sits with Arm Support (Tripod)', desc: 'Leans forward onto hands while sitting on the floor', domain: 'Gross Motor' },
       { id: 'm_6m_3', band: '20-26w', bandLabel: 'Weeks 20–26 (6 Months)', title: 'Blows "Raspberries" & Squeals', desc: 'Takes turns vocalizing back and forth in little baby conversations', domain: 'Speech & Language' },
       { id: 'm_6m_4', band: '20-26w', bandLabel: 'Weeks 20–26 (6 Months)', title: 'Passes Toy Between Hands', desc: 'Transfers a rattle or block from one hand into the other hand', domain: 'Fine Motor' },
 
-      // Weeks 30–39: 9 Months Stage
       { id: 'm_9m_1', band: '30-39w', bandLabel: 'Weeks 30–39 (9 Months)', title: 'Sits Without Any Support', desc: 'Can sit upright on carpet playing with toys without toppling', domain: 'Gross Motor' },
       { id: 'm_9m_2', band: '30-39w', bandLabel: 'Weeks 30–39 (9 Months)', title: 'Babbles Syllables ("Mamama", "Bababa")', desc: 'Strings repeated consonants and sounds together rhythmically', domain: 'Speech & Language' },
       { id: 'm_9m_3', band: '30-39w', bandLabel: 'Weeks 30–39 (9 Months)', title: 'Object Permanence (Finds Hidden Toy)', desc: 'Looks for a toy that falls or is partially covered by a blanket', domain: 'Cognitive' },
       { id: 'm_9m_4', band: '30-39w', bandLabel: 'Weeks 30–39 (9 Months)', title: 'Raises Arms to Be Held', desc: 'Reaches both arms up when wanting mom or dad to pick them up', domain: 'Social & Emotional' },
 
-      // Weeks 40–52: 1 Year Stage
       { id: 'm_12m_1', band: '40-52w', bandLabel: 'Weeks 40–52 (1 Year)', title: 'Pulls Up to Stand & Cruises', desc: 'Pulls up on couch or crib rails and walks holding onto furniture', domain: 'Gross Motor' },
       { id: 'm_12m_2', band: '40-52w', bandLabel: 'Weeks 40–52 (1 Year)', title: 'Pincer Grasp (Finger & Thumb)', desc: 'Picks up small pieces of food like cheerios between thumb and index', domain: 'Fine Motor' },
       { id: 'm_12m_3', band: '40-52w', bandLabel: 'Weeks 40–52 (1 Year)', title: 'Waves Bye-Bye & Plays Pat-a-Cake', desc: 'Uses social gestures and imitates simple interactive games', domain: 'Social & Cognitive' },
@@ -1368,8 +1367,43 @@
     }
 
     /* -------------------------------------------------------------
-       SLEEP WINDOW AUTO-CALCULATOR
+       SLEEP WINDOW SYSTEM: TICKBOX TOGGLE & BIDIRECTIONAL PRESETS
        ------------------------------------------------------------- */
+    window.handleJustWokeToggle = function(isChecked) {
+      const endInput = document.getElementById('sleepEndInput');
+      const startInput = document.getElementById('sleepStartInput');
+      const notice = document.getElementById('wakeLockNotice');
+
+      if (isChecked) {
+        const now = new Date();
+        endInput.value = formatToLocalISO(now);
+        endInput.classList.add('bg-indigo-50/70', 'border-indigo-300');
+        if (notice) notice.classList.remove('hidden');
+
+        // Automatically back-calculate start time using current duration preset
+        const currentMins = parseInt(document.getElementById('sleepDurationInput').value, 10) || 45;
+        const startDt = new Date(now.getTime() - currentMins * 60000);
+        startInput.value = formatToLocalISO(startDt);
+        window.handleSleepTimeChange();
+        showToast("Woke up now locked! Presets will set start time backwards.", "info");
+      } else {
+        endInput.classList.remove('bg-indigo-50/70', 'border-indigo-300');
+        if (notice) notice.classList.add('hidden');
+        showToast("Manual mode: Presets will calculate forward from start time.", "info");
+      }
+    };
+
+    window.handleManualSleepInput = function(changedField) {
+      if (changedField === 'end') {
+        const checkbox = document.getElementById('sleepJustWokeCheckbox');
+        if (checkbox && checkbox.checked) {
+          checkbox.checked = false;
+          window.handleJustWokeToggle(false);
+        }
+      }
+      window.handleSleepTimeChange();
+    };
+
     window.handleSleepTimeChange = function() {
       const startVal = document.getElementById('sleepStartInput').value;
       const endVal = document.getElementById('sleepEndInput').value;
@@ -1402,39 +1436,29 @@
     };
 
     window.adjustSleepWindowMins = function(mins) {
-      const endVal = document.getElementById('sleepEndInput').value;
-      const startVal = document.getElementById('sleepStartInput').value;
+      const checkbox = document.getElementById('sleepJustWokeCheckbox');
+      const isJustWoke = checkbox ? checkbox.checked : false;
+      const startInput = document.getElementById('sleepStartInput');
+      const endInput = document.getElementById('sleepEndInput');
 
-      if (wakeTimeLocked || endVal) {
-        let endDt = endVal ? new Date(endVal) : new Date();
-        if (isNaN(endDt.getTime())) endDt = new Date();
-
-        const newStartDt = new Date(endDt.getTime() - mins * 60000);
-        document.getElementById('sleepStartInput').value = formatToLocalISO(newStartDt);
-        document.getElementById('sleepEndInput').value = formatToLocalISO(endDt);
+      if (isJustWoke) {
+        // Ticked: Baby just woke up. Lock end time to Now, calculate Start time backwards.
+        const now = new Date();
+        endInput.value = formatToLocalISO(now);
+        const calculatedStart = new Date(now.getTime() - mins * 60000);
+        startInput.value = formatToLocalISO(calculatedStart);
       } else {
-        let startDt = startVal ? new Date(startVal) : new Date(Date.now() - mins * 60000);
-        if (isNaN(startDt.getTime())) startDt = new Date(Date.now() - mins * 60000);
-
-        const newEndDt = new Date(startDt.getTime() + mins * 60000);
-        document.getElementById('sleepStartInput').value = formatToLocalISO(startDt);
-        document.getElementById('sleepEndInput').value = formatToLocalISO(newEndDt);
+        // Unticked: Calculate forward from Fell Asleep (Start) time
+        let startDt = startInput.value ? new Date(startInput.value) : new Date(Date.now() - mins * 60000);
+        if (isNaN(startDt.getTime())) {
+          startDt = new Date(Date.now() - mins * 60000);
+          startInput.value = formatToLocalISO(startDt);
+        }
+        const calculatedEnd = new Date(startDt.getTime() + mins * 60000);
+        endInput.value = formatToLocalISO(calculatedEnd);
       }
 
       window.handleSleepTimeChange();
-    };
-
-    window.setSleepEndToNow = function() {
-      const now = new Date();
-      wakeTimeLocked = true;
-      document.getElementById('sleepEndInput').value = formatToLocalISO(now);
-      
-      const currentDuration = parseInt(document.getElementById('sleepDurationInput').value, 10) || 45;
-      const startDt = new Date(now.getTime() - currentDuration * 60000);
-      document.getElementById('sleepStartInput').value = formatToLocalISO(startDt);
-      
-      window.handleSleepTimeChange();
-      showToast("Baby woke up now! Tap presets (30m, 1h...) to shift start time.", "info");
     };
 
     /* -------------------------------------------------------------
@@ -1781,7 +1805,6 @@
         const input = document.getElementById('babyBirthDateInput');
         if (input) input.value = saved;
       } else {
-        // Default to approximately 8 weeks ago if not set
         const d = new Date();
         d.setDate(d.getDate() - 56);
         babyBirthDate = d.toISOString().slice(0, 10);
@@ -1806,7 +1829,6 @@
       renderMilestones();
       showToast("Baby's birth date saved!", "success");
 
-      // Sync birth date across phones
       try {
         if (db && currentUser) {
           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_activities', `meta_birthdate_${currentRoomCode}`);
@@ -1930,7 +1952,6 @@
       saveMilestonesLocally();
       renderMilestones();
 
-      // Cloud Sync
       try {
         if (db && currentUser) {
           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'baby_activities', `milestones_${currentRoomCode}`);
@@ -1975,7 +1996,6 @@
         return item.band === activeMilestoneBand;
       });
 
-      // Group by Band
       const groups = {};
       filtered.forEach(item => {
         if (!groups[item.bandLabel]) groups[item.bandLabel] = [];
@@ -2573,7 +2593,7 @@
         feedTypeEl.innerText = "No feeds yet";
       }
 
-      // Last Sleep (Calculated from end of nap / wake time)
+      // Last Sleep (Wake Window Timer)
       const sleeps = allLogs.filter(item => item.type === 'sleep');
       const sleepBadge = document.getElementById('sleepCountBadge');
       const sleepTimeEl = document.getElementById('lastSleepTime');
@@ -3127,14 +3147,12 @@
         reportText += medsList.join('\n') + `\n\n`;
       }
 
-      // Include achieved milestones count
       const doneCount = Object.keys(achievedMilestones).length;
       reportText += `--------------------------------------\n`;
       reportText += `5. DEVELOPMENTAL MILESTONES ACHIEVED\n`;
       reportText += `--------------------------------------\n`;
       reportText += `Total Mastered: ${doneCount} of ${MILESTONES_DATA.length} core milestones\n\n`;
 
-      // Include pending questions from Doctor Notes Tab
       const pendingQuestions = allDoctorNotes.filter(n => !n.isAnswered);
       if (pendingQuestions.length > 0) {
         reportText += `--------------------------------------\n`;
@@ -3175,7 +3193,6 @@
       editingLogId = existingItem ? existingItem.id : null;
       document.getElementById('editingLogIdInput').value = editingLogId || '';
       document.getElementById('entryTypeInput').value = type;
-      wakeTimeLocked = false;
 
       const saveBtn = document.getElementById('saveLogBtn');
       if (existingItem) {
@@ -3270,7 +3287,12 @@
         document.getElementById('sleepTypeNap').checked = (sleepTypeVal === 'Nap');
         document.getElementById('sleepTypeNight').checked = (sleepTypeVal === 'Night Sleep');
 
+        const wokeCheckbox = document.getElementById('sleepJustWokeCheckbox');
+
         if (existingItem) {
+          wokeCheckbox.checked = false;
+          window.handleJustWokeToggle(false);
+
           const duration = parseInt(existingItem.durationMins, 10) || 45;
           let sDate = existingItem.sleepStartTime ? new Date(existingItem.sleepStartTime) : new Date(existingItem.timestamp);
           let eDate = existingItem.sleepEndTime ? new Date(existingItem.sleepEndTime) : new Date(sDate.getTime() + duration * 60000);
@@ -3278,13 +3300,9 @@
           document.getElementById('sleepStartInput').value = formatToLocalISO(sDate);
           document.getElementById('sleepEndInput').value = formatToLocalISO(eDate);
         } else {
-          const now = new Date();
-          const defaultDuration = 45;
-          const sDate = new Date(now.getTime() - defaultDuration * 60000);
-
-          document.getElementById('sleepStartInput').value = formatToLocalISO(sDate);
-          document.getElementById('sleepEndInput').value = formatToLocalISO(now);
-          wakeTimeLocked = true;
+          // Default: Tick "Baby just woke up" on new logs for fast back-calculations
+          wokeCheckbox.checked = true;
+          window.handleJustWokeToggle(true);
         }
 
         window.handleSleepTimeChange();
@@ -3332,7 +3350,6 @@
 
     window.closeLogModal = function() {
       editingLogId = null;
-      wakeTimeLocked = false;
       document.getElementById('editingLogIdInput').value = '';
       const modal = document.getElementById('logModal');
       modal.classList.add('hidden');
